@@ -34,6 +34,7 @@
     localStorage.getItem("auto_font_size") !== "false",
   );
   let font_size = $state(parseFloat(localStorage.getItem("font_size") || "48"));
+  let reverse_print = $state(localStorage.getItem("reverse_print") === "true");
 
   // Save to localStorage
   $effect(() => {
@@ -47,6 +48,7 @@
   $effect(() => {
     localStorage.setItem("auto_font_size", auto_font_size.toString());
     localStorage.setItem("font_size", font_size.toString());
+    localStorage.setItem("reverse_print", reverse_print.toString());
   });
 
   // Save text to sessionStorage
@@ -289,20 +291,63 @@
       return val > pattern[x % 4][y % 4] ? 0 : 1;
     };
 
+    const inkMask = reverse_print
+      ? new Uint8Array(label_width * label_height)
+      : undefined;
+    const reverseMask = reverse_print
+      ? new Uint8Array(label_width * label_height)
+      : undefined;
+
+    if (inkMask && reverseMask) {
+      const reverse_padding = 14;
+      const reverse_padding_squared = reverse_padding * reverse_padding;
+
+      for (let y = 0; y < label_height; y++) {
+        for (let x = 0; x < label_width; x++) {
+          const idx = x + y * label_width;
+          const bit = dither(x, y);
+          inkMask[idx] = bit;
+          if (!bit) continue;
+
+          for (let dy = -reverse_padding; dy <= reverse_padding; dy++) {
+            const yy = y + dy;
+            if (yy < 0 || yy >= label_height) continue;
+
+            for (let dx = -reverse_padding; dx <= reverse_padding; dx++) {
+              const xx = x + dx;
+              if (xx < 0 || xx >= label_width) continue;
+              if (dx * dx + dy * dy > reverse_padding_squared) continue;
+
+              reverseMask[xx + yy * label_width] = 1;
+            }
+          }
+        }
+      }
+    }
+
+    const printBit = (x: number, y: number) => {
+      if (y >= label_height) return 0;
+      if (!inkMask || !reverseMask) return dither(x, y);
+
+      const idx = x + y * label_width;
+      if (!reverseMask[idx]) return 0;
+      return inkMask[idx] ? 0 : 1;
+    };
+
     // Dither to binary image data, in the printer format
     const rows = Math.floor((label_height + 7) / 8);
     const pixels = new Uint8Array(rows * label_width);
     for (let x = 0, pos = 0; x < label_width; x++) {
       for (let y = 0; y < label_height; y += 8) {
         const val =
-          dither(x, y) * 128 +
-          dither(x, y + 1) * 64 +
-          dither(x, y + 2) * 32 +
-          dither(x, y + 3) * 16 +
-          dither(x, y + 4) * 8 +
-          dither(x, y + 5) * 4 +
-          dither(x, y + 6) * 2 +
-          dither(x, y + 7);
+          printBit(x, y) * 128 +
+          printBit(x, y + 1) * 64 +
+          printBit(x, y + 2) * 32 +
+          printBit(x, y + 3) * 16 +
+          printBit(x, y + 4) * 8 +
+          printBit(x, y + 5) * 4 +
+          printBit(x, y + 6) * 2 +
+          printBit(x, y + 7);
         pixels[pos] = val;
         pos++;
       }
@@ -548,6 +593,10 @@
         <label>
           <input type="checkbox" bind:checked={auto_font_size} />
           Automatic Font Size
+        </label>
+        <label>
+          <input type="checkbox" bind:checked={reverse_print} />
+          Reverse Around Text
         </label>
         <label>
           Font Size:
