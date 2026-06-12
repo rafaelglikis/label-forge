@@ -1,14 +1,26 @@
 <script lang="ts">
   import { onMount, settled, tick } from "svelte";
+  import BoxIcons from "./lib/BoxIcons.svelte";
+  import { boxIconMap } from "./lib/boxicons";
+  import BootstrapIcons from "./lib/BootstrapIcons.svelte";
+  import { bootstrapIconMap } from "./lib/bootstrap-icons";
   import Emoji from "./lib/Emoji.svelte";
   import FontAwesome from "./lib/FontAwesome.svelte";
   import { fontAwesomeIconMap } from "./lib/font-awesome-icons";
+  import HeroIcons from "./lib/HeroIcons.svelte";
+  import { heroIconMap, type HeroIcon } from "./lib/heroicons";
+  import IonIcons from "./lib/IonIcons.svelte";
+  import { ionIconMap, type IonIcon } from "./lib/ionicons";
   import LucideIcons from "./lib/LucideIcons.svelte";
   import { lucideIconMap, type LucideIcon } from "./lib/lucide-icons";
   import MaterialIcons from "./lib/MaterialIcons.svelte";
   import { materialIconMap } from "./lib/material-icons";
+  import PhosphorIcons from "./lib/PhosphorIcons.svelte";
+  import { phosphorIconMap } from "./lib/phosphor-icons";
   import RemixIcons from "./lib/RemixIcons.svelte";
   import { remixIconMap } from "./lib/remix-icons";
+  import TablerIcons from "./lib/TablerIcons.svelte";
+  import { tablerIconMap, type TablerIcon } from "./lib/tabler-icons";
 
   const fontAwesomeSolidFontUrl = new URL(
     "@fortawesome/fontawesome-free/webfonts/fa-solid-900.woff2",
@@ -46,6 +58,38 @@
     "remixicon/fonts/remixicon.woff2",
     import.meta.url,
   ).href;
+  const boxIconFontUrl = new URL(
+    "boxicons/fonts/boxicons.woff2",
+    import.meta.url,
+  ).href;
+  const bootstrapIconFontUrl = new URL(
+    "bootstrap-icons/font/fonts/bootstrap-icons.woff2",
+    import.meta.url,
+  ).href;
+  const phosphorThinFontUrl = new URL(
+    "@phosphor-icons/web/thin/Phosphor-Thin.woff2",
+    import.meta.url,
+  ).href;
+  const phosphorLightFontUrl = new URL(
+    "@phosphor-icons/web/light/Phosphor-Light.woff2",
+    import.meta.url,
+  ).href;
+  const phosphorRegularFontUrl = new URL(
+    "@phosphor-icons/web/regular/Phosphor.woff2",
+    import.meta.url,
+  ).href;
+  const phosphorBoldFontUrl = new URL(
+    "@phosphor-icons/web/bold/Phosphor-Bold.woff2",
+    import.meta.url,
+  ).href;
+  const phosphorFillFontUrl = new URL(
+    "@phosphor-icons/web/fill/Phosphor-Fill.woff2",
+    import.meta.url,
+  ).href;
+  const phosphorDuotoneFontUrl = new URL(
+    "@phosphor-icons/web/duotone/Phosphor-Duotone.woff2",
+    import.meta.url,
+  ).href;
 
   type CanvasContext =
     | CanvasRenderingContext2D
@@ -76,6 +120,13 @@
   let show_material_icons = $state(false);
   let show_lucide_icons = $state(false);
   let show_remix_icons = $state(false);
+  let show_box_icons = $state(false);
+  let show_tabler_icons = $state(false);
+  let show_bootstrap_icons = $state(false);
+  let show_hero_icons = $state(false);
+  let show_phosphor_icons = $state(false);
+  let show_ion_icons = $state(false);
+  let icon_search_query = $state("");
   let textarea: HTMLTextAreaElement | undefined = $state();
 
   // Font size settings (loaded from localStorage)
@@ -113,7 +164,7 @@
     size: number,
     render_fn: (
       str: string,
-      vectorIcon?: LucideIcon,
+      vectorIcon?: LucideIcon | TablerIcon | HeroIcon | IonIcon,
       size?: number,
     ) => void,
   ) {
@@ -132,6 +183,12 @@
     const match_material_icons = /\{mi:(?:(?:filled|outlined|round|sharp|two-tone):)?[a-z0-9_]+\}/g;
     const match_lucide_icons = /\{lu:[a-z0-9-]+\}/g;
     const match_remix_icons = /\{ri:[a-z0-9-]+\}/g;
+    const match_box_icons = /\{bx:(?:bx|bxs|bxl)-[a-z0-9-]+\}/g;
+    const match_tabler_icons = /\{ti:(?:(?:outline|filled):)?[a-z0-9-]+\}/g;
+    const match_bootstrap_icons = /\{bi:[a-z0-9-]+\}/g;
+    const match_hero_icons = /\{hi:(?:(?:outline|solid):)?[a-z0-9-]+\}/g;
+    const match_phosphor_icons = /\{ph:(?:(?:thin|light|regular|bold|fill|duotone):)?[a-z0-9-]+\}/g;
+    const match_ion_icons = /\{io:[a-z0-9-]+\}/g;
     const match_big = /\^\^.*?\^\^/g;
     const match_small = /__.*?__/g;
 
@@ -202,6 +259,96 @@
       parsed.push({
         pos: start,
         type: "remix icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+
+    for (const m of clean_line.matchAll(match_box_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "box icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+
+    for (const m of clean_line.matchAll(match_tabler_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "tabler icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+
+    for (const m of clean_line.matchAll(match_bootstrap_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "bootstrap icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+
+    for (const m of clean_line.matchAll(match_hero_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "hero icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+
+    for (const m of clean_line.matchAll(match_phosphor_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "phosphor icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+
+    for (const m of clean_line.matchAll(match_ion_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "ion icon",
         end,
         icon: m[0].slice(4, -1),
       });
@@ -340,6 +487,75 @@
           pos = tag.end ?? tag.pos;
           break;
         }
+        case "box icon": {
+          const icon = tag.icon ? boxIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            ctx.font = `${current_font.size}px "boxicons"`;
+            render_fn(icon.unicode);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
+        case "tabler icon": {
+          const icon = tag.icon ? tablerIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            render_fn("", icon, current_font.size);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
+        case "bootstrap icon": {
+          const icon = tag.icon ? bootstrapIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            ctx.font = `${current_font.size}px "bootstrap-icons"`;
+            render_fn(icon.unicode);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
+        case "hero icon": {
+          const icon = tag.icon ? heroIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            render_fn("", icon, current_font.size);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
+        case "phosphor icon": {
+          const icon = tag.icon ? phosphorIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            ctx.font = `${current_font.size}px "${icon.fontFamily}"`;
+            render_fn(icon.unicode);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
+        case "ion icon": {
+          const icon = tag.icon ? ionIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            render_fn("", icon, current_font.size);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
       }
     }
   }
@@ -391,13 +607,16 @@
 
   function drawVectorIcon(
     ctx: CanvasContext,
-    icon: LucideIcon,
+    icon: LucideIcon | TablerIcon | HeroIcon | IonIcon,
     x: number,
     baseline: number,
     size: number,
   ) {
-    const n = (value: string | number | undefined, fallback = 0) =>
-      value === undefined ? fallback : Number(value);
+    const n = (value: string | number | undefined, fallback = 0) => {
+      if (value === undefined) return fallback;
+      const parsed = typeof value === "number" ? value : parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
     const points = (value: string | number | undefined) =>
       String(value ?? "")
         .trim()
@@ -407,18 +626,31 @@
 
     ctx.save();
     ctx.translate(x, baseline - size);
-    ctx.scale(size / 24, size / 24);
-    ctx.fillStyle = "transparent";
+    const viewBoxSize = "viewBoxSize" in icon ? icon.viewBoxSize : 24;
+    ctx.scale(size / viewBoxSize, size / viewBoxSize);
+    const filled =
+      "style" in icon && (icon.style === "filled" || icon.style === "solid");
+    ctx.fillStyle = filled ? "#000" : "transparent";
     ctx.strokeStyle = "#000";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = viewBoxSize === 512 ? 32 : 2;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
     for (const [tag, attrs] of icon.node) {
+      const fillNone = String(attrs.class ?? "").includes("ionicon-fill-none");
+      const shouldFill = filled && !fillNone;
+      ctx.lineWidth = n(attrs["stroke-width"], viewBoxSize === 512 ? 32 : 2);
       ctx.beginPath();
       switch (tag) {
         case "path":
-          if (attrs.d !== undefined) ctx.stroke(new Path2D(String(attrs.d)));
+          if (attrs.d !== undefined) {
+            const path = new Path2D(String(attrs.d));
+            if (shouldFill) {
+              const fillRule = attrs["fill-rule"] === "evenodd" ? "evenodd" : "nonzero";
+              ctx.fill(path, fillRule);
+            }
+            else ctx.stroke(path);
+          }
           break;
         case "line":
           ctx.moveTo(n(attrs.x1), n(attrs.y1));
@@ -427,7 +659,8 @@
           break;
         case "circle":
           ctx.arc(n(attrs.cx), n(attrs.cy), n(attrs.r), 0, Math.PI * 2);
-          ctx.stroke();
+          if (shouldFill) ctx.fill();
+          else ctx.stroke();
           break;
         case "ellipse":
           ctx.ellipse(
@@ -439,7 +672,8 @@
             0,
             Math.PI * 2,
           );
-          ctx.stroke();
+          if (shouldFill) ctx.fill();
+          else ctx.stroke();
           break;
         case "rect": {
           const rx = n(attrs.rx);
@@ -454,7 +688,8 @@
           } else {
             ctx.rect(n(attrs.x), n(attrs.y), n(attrs.width), n(attrs.height));
           }
-          ctx.stroke();
+          if (shouldFill) ctx.fill();
+          else ctx.stroke();
           break;
         }
         case "polyline":
@@ -464,7 +699,8 @@
           ctx.moveTo(pts[0][0], pts[0][1]);
           for (const point of pts.slice(1)) ctx.lineTo(point[0], point[1]);
           if (tag === "polygon") ctx.closePath();
-          ctx.stroke();
+          if (shouldFill) ctx.fill();
+          else ctx.stroke();
           break;
         }
       }
@@ -718,6 +954,14 @@
         `url("${materialIconsTwoToneFontUrl}")`,
       ),
       new FontFace("remixicon", `url("${remixIconFontUrl}")`),
+      new FontFace("boxicons", `url("${boxIconFontUrl}")`),
+      new FontFace("bootstrap-icons", `url("${bootstrapIconFontUrl}")`),
+      new FontFace("Phosphor-Thin", `url("${phosphorThinFontUrl}")`),
+      new FontFace("Phosphor-Light", `url("${phosphorLightFontUrl}")`),
+      new FontFace("Phosphor", `url("${phosphorRegularFontUrl}")`),
+      new FontFace("Phosphor-Bold", `url("${phosphorBoldFontUrl}")`),
+      new FontFace("Phosphor-Fill", `url("${phosphorFillFontUrl}")`),
+      new FontFace("Phosphor-Duotone", `url("${phosphorDuotoneFontUrl}")`),
     ];
     for (const font of fonts) document.fonts.add(font);
     Promise.all(fonts.map((font) => font.load())).then(() => {
@@ -852,6 +1096,12 @@
           if (show_emoji) show_material_icons = false;
           if (show_emoji) show_lucide_icons = false;
           if (show_emoji) show_remix_icons = false;
+          if (show_emoji) show_box_icons = false;
+          if (show_emoji) show_tabler_icons = false;
+          if (show_emoji) show_bootstrap_icons = false;
+          if (show_emoji) show_hero_icons = false;
+          if (show_emoji) show_phosphor_icons = false;
+          if (show_emoji) show_ion_icons = false;
         }}
       >
       </button>
@@ -859,12 +1109,19 @@
         class="font-awesome"
         aria-pressed={show_font_awesome}
         aria-label="Show Font Awesome Icon Selector"
+        title="Font Awesome"
         onclick={() => {
           show_font_awesome = !show_font_awesome;
           if (show_font_awesome) show_emoji = false;
           if (show_font_awesome) show_material_icons = false;
           if (show_font_awesome) show_lucide_icons = false;
           if (show_font_awesome) show_remix_icons = false;
+          if (show_font_awesome) show_box_icons = false;
+          if (show_font_awesome) show_tabler_icons = false;
+          if (show_font_awesome) show_bootstrap_icons = false;
+          if (show_font_awesome) show_hero_icons = false;
+          if (show_font_awesome) show_phosphor_icons = false;
+          if (show_font_awesome) show_ion_icons = false;
         }}
       >
       </button>
@@ -872,12 +1129,19 @@
         class="material-icons"
         aria-pressed={show_material_icons}
         aria-label="Show Material Icon Selector"
+        title="Material Icons"
         onclick={() => {
           show_material_icons = !show_material_icons;
           if (show_material_icons) show_emoji = false;
           if (show_material_icons) show_font_awesome = false;
           if (show_material_icons) show_lucide_icons = false;
           if (show_material_icons) show_remix_icons = false;
+          if (show_material_icons) show_box_icons = false;
+          if (show_material_icons) show_tabler_icons = false;
+          if (show_material_icons) show_bootstrap_icons = false;
+          if (show_material_icons) show_hero_icons = false;
+          if (show_material_icons) show_phosphor_icons = false;
+          if (show_material_icons) show_ion_icons = false;
         }}
       >
       </button>
@@ -885,12 +1149,19 @@
         class="lucide-icons"
         aria-pressed={show_lucide_icons}
         aria-label="Show Lucide Icon Selector"
+        title="Lucide Icons"
         onclick={() => {
           show_lucide_icons = !show_lucide_icons;
           if (show_lucide_icons) show_emoji = false;
           if (show_lucide_icons) show_font_awesome = false;
           if (show_lucide_icons) show_material_icons = false;
           if (show_lucide_icons) show_remix_icons = false;
+          if (show_lucide_icons) show_box_icons = false;
+          if (show_lucide_icons) show_tabler_icons = false;
+          if (show_lucide_icons) show_bootstrap_icons = false;
+          if (show_lucide_icons) show_hero_icons = false;
+          if (show_lucide_icons) show_phosphor_icons = false;
+          if (show_lucide_icons) show_ion_icons = false;
         }}
       >
       </button>
@@ -898,12 +1169,139 @@
         class="remix-icons"
         aria-pressed={show_remix_icons}
         aria-label="Show Remix Icon Selector"
+        title="Remix Icon"
         onclick={() => {
           show_remix_icons = !show_remix_icons;
           if (show_remix_icons) show_emoji = false;
           if (show_remix_icons) show_font_awesome = false;
           if (show_remix_icons) show_material_icons = false;
           if (show_remix_icons) show_lucide_icons = false;
+          if (show_remix_icons) show_box_icons = false;
+          if (show_remix_icons) show_tabler_icons = false;
+          if (show_remix_icons) show_bootstrap_icons = false;
+          if (show_remix_icons) show_hero_icons = false;
+          if (show_remix_icons) show_phosphor_icons = false;
+          if (show_remix_icons) show_ion_icons = false;
+        }}
+      >
+      </button>
+      <button
+        class="box-icons"
+        aria-pressed={show_box_icons}
+        aria-label="Show Boxicons Selector"
+        title="Boxicons"
+        onclick={() => {
+          show_box_icons = !show_box_icons;
+          if (show_box_icons) show_emoji = false;
+          if (show_box_icons) show_font_awesome = false;
+          if (show_box_icons) show_material_icons = false;
+          if (show_box_icons) show_lucide_icons = false;
+          if (show_box_icons) show_remix_icons = false;
+          if (show_box_icons) show_tabler_icons = false;
+          if (show_box_icons) show_bootstrap_icons = false;
+          if (show_box_icons) show_hero_icons = false;
+          if (show_box_icons) show_phosphor_icons = false;
+          if (show_box_icons) show_ion_icons = false;
+        }}
+      >
+      </button>
+      <button
+        class="tabler-icons"
+        aria-pressed={show_tabler_icons}
+        aria-label="Show Tabler Icon Selector"
+        title="Tabler Icons"
+        onclick={() => {
+          show_tabler_icons = !show_tabler_icons;
+          if (show_tabler_icons) show_emoji = false;
+          if (show_tabler_icons) show_font_awesome = false;
+          if (show_tabler_icons) show_material_icons = false;
+          if (show_tabler_icons) show_lucide_icons = false;
+          if (show_tabler_icons) show_remix_icons = false;
+          if (show_tabler_icons) show_box_icons = false;
+          if (show_tabler_icons) show_bootstrap_icons = false;
+          if (show_tabler_icons) show_hero_icons = false;
+          if (show_tabler_icons) show_phosphor_icons = false;
+          if (show_tabler_icons) show_ion_icons = false;
+        }}
+      >
+      </button>
+      <button
+        class="bootstrap-icons"
+        aria-pressed={show_bootstrap_icons}
+        aria-label="Show Bootstrap Icon Selector"
+        title="Bootstrap Icons"
+        onclick={() => {
+          show_bootstrap_icons = !show_bootstrap_icons;
+          if (show_bootstrap_icons) show_emoji = false;
+          if (show_bootstrap_icons) show_font_awesome = false;
+          if (show_bootstrap_icons) show_material_icons = false;
+          if (show_bootstrap_icons) show_lucide_icons = false;
+          if (show_bootstrap_icons) show_remix_icons = false;
+          if (show_bootstrap_icons) show_box_icons = false;
+          if (show_bootstrap_icons) show_tabler_icons = false;
+          if (show_bootstrap_icons) show_hero_icons = false;
+          if (show_bootstrap_icons) show_phosphor_icons = false;
+          if (show_bootstrap_icons) show_ion_icons = false;
+        }}
+      >
+      </button>
+      <button
+        class="hero-icons"
+        aria-pressed={show_hero_icons}
+        aria-label="Show Heroicons Selector"
+        title="Heroicons"
+        onclick={() => {
+          show_hero_icons = !show_hero_icons;
+          if (show_hero_icons) show_emoji = false;
+          if (show_hero_icons) show_font_awesome = false;
+          if (show_hero_icons) show_material_icons = false;
+          if (show_hero_icons) show_lucide_icons = false;
+          if (show_hero_icons) show_remix_icons = false;
+          if (show_hero_icons) show_box_icons = false;
+          if (show_hero_icons) show_tabler_icons = false;
+          if (show_hero_icons) show_bootstrap_icons = false;
+          if (show_hero_icons) show_phosphor_icons = false;
+          if (show_hero_icons) show_ion_icons = false;
+        }}
+      >
+      </button>
+      <button
+        class="phosphor-icons"
+        aria-pressed={show_phosphor_icons}
+        aria-label="Show Phosphor Icon Selector"
+        title="Phosphor Icons"
+        onclick={() => {
+          show_phosphor_icons = !show_phosphor_icons;
+          if (show_phosphor_icons) show_emoji = false;
+          if (show_phosphor_icons) show_font_awesome = false;
+          if (show_phosphor_icons) show_material_icons = false;
+          if (show_phosphor_icons) show_lucide_icons = false;
+          if (show_phosphor_icons) show_remix_icons = false;
+          if (show_phosphor_icons) show_box_icons = false;
+          if (show_phosphor_icons) show_tabler_icons = false;
+          if (show_phosphor_icons) show_bootstrap_icons = false;
+          if (show_phosphor_icons) show_hero_icons = false;
+          if (show_phosphor_icons) show_ion_icons = false;
+        }}
+      >
+      </button>
+      <button
+        class="ion-icons"
+        aria-pressed={show_ion_icons}
+        aria-label="Show Ionicons Selector"
+        title="Ionicons"
+        onclick={() => {
+          show_ion_icons = !show_ion_icons;
+          if (show_ion_icons) show_emoji = false;
+          if (show_ion_icons) show_font_awesome = false;
+          if (show_ion_icons) show_material_icons = false;
+          if (show_ion_icons) show_lucide_icons = false;
+          if (show_ion_icons) show_remix_icons = false;
+          if (show_ion_icons) show_box_icons = false;
+          if (show_ion_icons) show_tabler_icons = false;
+          if (show_ion_icons) show_bootstrap_icons = false;
+          if (show_ion_icons) show_hero_icons = false;
+          if (show_ion_icons) show_phosphor_icons = false;
         }}
       >
       </button>
@@ -912,16 +1310,34 @@
       <Emoji onselect={insertText} />
     {/if}
     {#if show_font_awesome}
-      <FontAwesome onselect={(token: string) => insertText(`{fa:${token}}`)} />
+      <FontAwesome bind:query={icon_search_query} onselect={(token: string) => insertText(`{fa:${token}}`)} />
     {/if}
     {#if show_material_icons}
-      <MaterialIcons onselect={(token: string) => insertText(`{mi:${token}}`)} />
+      <MaterialIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{mi:${token}}`)} />
     {/if}
     {#if show_lucide_icons}
-      <LucideIcons onselect={(token: string) => insertText(`{lu:${token}}`)} />
+      <LucideIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{lu:${token}}`)} />
     {/if}
     {#if show_remix_icons}
-      <RemixIcons onselect={(token: string) => insertText(`{ri:${token}}`)} />
+      <RemixIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ri:${token}}`)} />
+    {/if}
+    {#if show_box_icons}
+      <BoxIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{bx:${token}}`)} />
+    {/if}
+    {#if show_tabler_icons}
+      <TablerIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ti:${token}}`)} />
+    {/if}
+    {#if show_bootstrap_icons}
+      <BootstrapIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{bi:${token}}`)} />
+    {/if}
+    {#if show_hero_icons}
+      <HeroIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{hi:${token}}`)} />
+    {/if}
+    {#if show_phosphor_icons}
+      <PhosphorIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ph:${token}}`)} />
+    {/if}
+    {#if show_ion_icons}
+      <IonIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{io:${token}}`)} />
     {/if}
     <textarea
       bind:this={textarea}
@@ -1171,6 +1587,30 @@
   }
   .remix-icons {
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3ERI%3C/text%3E%3C/svg%3E")
+      no-repeat;
+  }
+  .box-icons {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EBX%3C/text%3E%3C/svg%3E")
+      no-repeat;
+  }
+  .tabler-icons {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3ETB%3C/text%3E%3C/svg%3E")
+      no-repeat;
+  }
+  .bootstrap-icons {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EBI%3C/text%3E%3C/svg%3E")
+      no-repeat;
+  }
+  .hero-icons {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EHI%3C/text%3E%3C/svg%3E")
+      no-repeat;
+  }
+  .phosphor-icons {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EPH%3C/text%3E%3C/svg%3E")
+      no-repeat;
+  }
+  .ion-icons {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EIO%3C/text%3E%3C/svg%3E")
       no-repeat;
   }
   .fnt-small {

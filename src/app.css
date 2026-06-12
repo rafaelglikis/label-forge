@@ -101,3 +101,67 @@ body {
   font-display: block;
   src: url('remixicon/fonts/remixicon.woff2') format('woff2');
 }
+
+@font-face {
+  font-family: 'boxicons';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('boxicons/fonts/boxicons.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'bootstrap-icons';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('bootstrap-icons/font/fonts/bootstrap-icons.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Phosphor-Thin';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@phosphor-icons/web/thin/Phosphor-Thin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Phosphor-Light';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@phosphor-icons/web/light/Phosphor-Light.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Phosphor';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@phosphor-icons/web/regular/Phosphor.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Phosphor-Bold';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@phosphor-icons/web/bold/Phosphor-Bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Phosphor-Fill';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@phosphor-icons/web/fill/Phosphor-Fill.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Phosphor-Duotone';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('@phosphor-icons/web/duotone/Phosphor-Duotone.woff2') format('woff2');
+}

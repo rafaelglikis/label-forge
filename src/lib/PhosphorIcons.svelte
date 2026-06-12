@@ -1,29 +1,27 @@
 <script lang="ts">
-  import { fontAwesomeIcons } from "./font-awesome-icons";
+  import { phosphorIcons } from "./phosphor-icons";
 
-  let { query = $bindable(""), onselect = (_name: string) => {} } = $props();
+  let { query = $bindable(""), onselect = (_token: string) => {} } = $props();
   let recentIcons = $state([
-    "solid:star",
-    "solid:heart",
-    "solid:check",
-    "solid:tag",
-    "solid:print",
-    "solid:gift",
+    "regular:star",
+    "regular:heart",
+    "regular:check",
+    "regular:tag",
+    "regular:printer",
+    "regular:gift",
   ]);
 
   const filteredIcons = $derived(
-    fontAwesomeIcons.filter((icon) => {
+    phosphorIcons.filter((icon) => {
       const q = query.trim().toLowerCase();
       if (!q) return true;
-      return (
-        icon.searchText.includes(q)
-      );
+      return icon.searchText.includes(q);
     }),
   );
 
-  const recentFontAwesomeIcons = $derived(
+  const recentPhosphorIcons = $derived(
     recentIcons
-      .map((token) => fontAwesomeIcons.find((icon) => icon.token === token))
+      .map((token) => phosphorIcons.find((icon) => icon.token === token))
       .filter((icon) => icon !== undefined),
   );
 
@@ -36,26 +34,24 @@
   }
 </script>
 
-<font-awesome-picker>
+<phosphor-icons-picker>
   <div class="header">
-    <h3>Pick a Font Awesome icon</h3>
+    <h3>Pick a Phosphor icon</h3>
     <input bind:value={query} placeholder="Search icons..." />
   </div>
 
   <div class="grid-container">
-    {#if recentFontAwesomeIcons.length > 0 && !query.trim()}
+    {#if recentPhosphorIcons.length > 0 && !query.trim()}
       <div class="section">
         <p>Recent</p>
         <div class="grid">
-          {#each recentFontAwesomeIcons as icon}
+          {#each recentPhosphorIcons as icon}
             <button
               onclick={() => selectIcon(icon.token)}
               class="icon-btn"
               title={`${icon.label} (${icon.style})`}
             >
-              <span class="fa-icon {icon.style}">
-                {icon.unicode}
-              </span>
+              <span class="phosphor-icon {icon.style}">{icon.unicode}</span>
             </button>
           {/each}
         </div>
@@ -63,7 +59,7 @@
     {/if}
 
     <div class="section">
-      <p>{query.trim() ? `${filteredIcons.length} Results` : "All Free Icons"}</p>
+      <p>{query.trim() ? `${filteredIcons.length} Results` : "All Phosphor Icons"}</p>
       <div class="grid">
         {#each filteredIcons as icon}
           <button
@@ -71,18 +67,16 @@
             class="icon-btn"
             title={`${icon.label} (${icon.style})`}
           >
-            <span class="fa-icon {icon.style}">
-              {icon.unicode}
-            </span>
+            <span class="phosphor-icon {icon.style}">{icon.unicode}</span>
           </button>
         {/each}
       </div>
     </div>
   </div>
-</font-awesome-picker>
+</phosphor-icons-picker>
 
 <style>
-  font-awesome-picker {
+  phosphor-icons-picker {
     border: 1px solid #ccc;
     border-radius: 8px;
     background-color: #f8f8f8;
@@ -159,19 +153,35 @@
     border-radius: 0.25em;
   }
 
-  .fa-icon.solid {
-    font-family: "Font Awesome 7 Free";
-    font-weight: 900;
+  .phosphor-icon {
+    font-style: normal;
+    font-weight: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  .fa-icon.regular {
-    font-family: "Font Awesome 7 Free";
-    font-weight: 400;
+  .phosphor-icon.thin {
+    font-family: "Phosphor-Thin";
   }
 
-  .fa-icon.brands {
-    font-family: "Font Awesome 7 Brands";
-    font-weight: 400;
+  .phosphor-icon.light {
+    font-family: "Phosphor-Light";
+  }
+
+  .phosphor-icon.regular {
+    font-family: "Phosphor";
+  }
+
+  .phosphor-icon.bold {
+    font-family: "Phosphor-Bold";
+  }
+
+  .phosphor-icon.fill {
+    font-family: "Phosphor-Fill";
+  }
+
+  .phosphor-icon.duotone {
+    font-family: "Phosphor-Duotone";
   }
 
   .icon-btn:hover {

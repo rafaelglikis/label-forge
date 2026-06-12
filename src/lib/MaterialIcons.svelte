@@ -1,9 +1,7 @@
 <script lang="ts">
   import { materialIcons } from "./material-icons";
 
-  const { onselect = (_token: string) => {} } = $props();
-
-  let query = $state("");
+  let { query = $bindable(""), onselect = (_token: string) => {} } = $props();
   let recentIcons = $state([
     "outlined:home",
     "outlined:favorite",

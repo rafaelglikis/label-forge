@@ -1,29 +1,27 @@
 <script lang="ts">
-  import { fontAwesomeIcons } from "./font-awesome-icons";
+  import { heroIcons } from "./heroicons";
 
-  let { query = $bindable(""), onselect = (_name: string) => {} } = $props();
+  let { query = $bindable(""), onselect = (_token: string) => {} } = $props();
   let recentIcons = $state([
-    "solid:star",
-    "solid:heart",
-    "solid:check",
-    "solid:tag",
-    "solid:print",
-    "solid:gift",
+    "outline:star",
+    "outline:heart",
+    "outline:check",
+    "outline:tag",
+    "outline:printer",
+    "outline:gift",
   ]);
 
   const filteredIcons = $derived(
-    fontAwesomeIcons.filter((icon) => {
+    heroIcons.filter((icon) => {
       const q = query.trim().toLowerCase();
       if (!q) return true;
-      return (
-        icon.searchText.includes(q)
-      );
+      return icon.searchText.includes(q);
     }),
   );
 
-  const recentFontAwesomeIcons = $derived(
+  const recentHeroIcons = $derived(
     recentIcons
-      .map((token) => fontAwesomeIcons.find((icon) => icon.token === token))
+      .map((token) => heroIcons.find((icon) => icon.token === token))
       .filter((icon) => icon !== undefined),
   );
 
@@ -36,26 +34,28 @@
   }
 </script>
 
-<font-awesome-picker>
+<hero-icons-picker>
   <div class="header">
-    <h3>Pick a Font Awesome icon</h3>
+    <h3>Pick a Heroicon</h3>
     <input bind:value={query} placeholder="Search icons..." />
   </div>
 
   <div class="grid-container">
-    {#if recentFontAwesomeIcons.length > 0 && !query.trim()}
+    {#if recentHeroIcons.length > 0 && !query.trim()}
       <div class="section">
         <p>Recent</p>
         <div class="grid">
-          {#each recentFontAwesomeIcons as icon}
+          {#each recentHeroIcons as icon}
             <button
               onclick={() => selectIcon(icon.token)}
               class="icon-btn"
               title={`${icon.label} (${icon.style})`}
             >
-              <span class="fa-icon {icon.style}">
-                {icon.unicode}
-              </span>
+              <svg class="hero-icon {icon.style}" viewBox="0 0 24 24" aria-hidden="true">
+                {#each icon.node as [tag, attrs]}
+                  <svelte:element this={tag} {...attrs} />
+                {/each}
+              </svg>
             </button>
           {/each}
         </div>
@@ -63,7 +63,7 @@
     {/if}
 
     <div class="section">
-      <p>{query.trim() ? `${filteredIcons.length} Results` : "All Free Icons"}</p>
+      <p>{query.trim() ? `${filteredIcons.length} Results` : "All Heroicons"}</p>
       <div class="grid">
         {#each filteredIcons as icon}
           <button
@@ -71,18 +71,20 @@
             class="icon-btn"
             title={`${icon.label} (${icon.style})`}
           >
-            <span class="fa-icon {icon.style}">
-              {icon.unicode}
-            </span>
+            <svg class="hero-icon {icon.style}" viewBox="0 0 24 24" aria-hidden="true">
+              {#each icon.node as [tag, attrs]}
+                <svelte:element this={tag} {...attrs} />
+              {/each}
+            </svg>
           </button>
         {/each}
       </div>
     </div>
   </div>
-</font-awesome-picker>
+</hero-icons-picker>
 
 <style>
-  font-awesome-picker {
+  hero-icons-picker {
     border: 1px solid #ccc;
     border-radius: 8px;
     background-color: #f8f8f8;
@@ -152,26 +154,29 @@
   }
 
   .icon-btn {
-    width: 2em;
-    height: 2em;
-    font-size: 1.25em;
-    line-height: 1.75em;
+    width: 2.5em;
+    height: 2.5em;
+    padding: 0.35em;
     border-radius: 0.25em;
   }
 
-  .fa-icon.solid {
-    font-family: "Font Awesome 7 Free";
-    font-weight: 900;
+  .hero-icon {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
-  .fa-icon.regular {
-    font-family: "Font Awesome 7 Free";
-    font-weight: 400;
+  .hero-icon.outline {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
-  .fa-icon.brands {
-    font-family: "Font Awesome 7 Brands";
-    font-weight: 400;
+  .hero-icon.solid {
+    fill: currentColor;
+    stroke: none;
   }
 
   .icon-btn:hover {

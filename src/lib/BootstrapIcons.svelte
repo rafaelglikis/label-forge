@@ -1,29 +1,27 @@
 <script lang="ts">
-  import { fontAwesomeIcons } from "./font-awesome-icons";
+  import { bootstrapIcons } from "./bootstrap-icons";
 
-  let { query = $bindable(""), onselect = (_name: string) => {} } = $props();
+  let { query = $bindable(""), onselect = (_token: string) => {} } = $props();
   let recentIcons = $state([
-    "solid:star",
-    "solid:heart",
-    "solid:check",
-    "solid:tag",
-    "solid:print",
-    "solid:gift",
+    "star",
+    "heart",
+    "check",
+    "tag",
+    "printer",
+    "gift",
   ]);
 
   const filteredIcons = $derived(
-    fontAwesomeIcons.filter((icon) => {
+    bootstrapIcons.filter((icon) => {
       const q = query.trim().toLowerCase();
       if (!q) return true;
-      return (
-        icon.searchText.includes(q)
-      );
+      return icon.searchText.includes(q);
     }),
   );
 
-  const recentFontAwesomeIcons = $derived(
+  const recentBootstrapIcons = $derived(
     recentIcons
-      .map((token) => fontAwesomeIcons.find((icon) => icon.token === token))
+      .map((token) => bootstrapIcons.find((icon) => icon.token === token))
       .filter((icon) => icon !== undefined),
   );
 
@@ -36,26 +34,24 @@
   }
 </script>
 
-<font-awesome-picker>
+<bootstrap-icons-picker>
   <div class="header">
-    <h3>Pick a Font Awesome icon</h3>
+    <h3>Pick a Bootstrap icon</h3>
     <input bind:value={query} placeholder="Search icons..." />
   </div>
 
   <div class="grid-container">
-    {#if recentFontAwesomeIcons.length > 0 && !query.trim()}
+    {#if recentBootstrapIcons.length > 0 && !query.trim()}
       <div class="section">
         <p>Recent</p>
         <div class="grid">
-          {#each recentFontAwesomeIcons as icon}
+          {#each recentBootstrapIcons as icon}
             <button
               onclick={() => selectIcon(icon.token)}
               class="icon-btn"
               title={`${icon.label} (${icon.style})`}
             >
-              <span class="fa-icon {icon.style}">
-                {icon.unicode}
-              </span>
+              <span class="bootstrap-icon">{icon.unicode}</span>
             </button>
           {/each}
         </div>
@@ -63,7 +59,7 @@
     {/if}
 
     <div class="section">
-      <p>{query.trim() ? `${filteredIcons.length} Results` : "All Free Icons"}</p>
+      <p>{query.trim() ? `${filteredIcons.length} Results` : "All Bootstrap Icons"}</p>
       <div class="grid">
         {#each filteredIcons as icon}
           <button
@@ -71,18 +67,16 @@
             class="icon-btn"
             title={`${icon.label} (${icon.style})`}
           >
-            <span class="fa-icon {icon.style}">
-              {icon.unicode}
-            </span>
+            <span class="bootstrap-icon">{icon.unicode}</span>
           </button>
         {/each}
       </div>
     </div>
   </div>
-</font-awesome-picker>
+</bootstrap-icons-picker>
 
 <style>
-  font-awesome-picker {
+  bootstrap-icons-picker {
     border: 1px solid #ccc;
     border-radius: 8px;
     background-color: #f8f8f8;
@@ -159,19 +153,12 @@
     border-radius: 0.25em;
   }
 
-  .fa-icon.solid {
-    font-family: "Font Awesome 7 Free";
-    font-weight: 900;
-  }
-
-  .fa-icon.regular {
-    font-family: "Font Awesome 7 Free";
-    font-weight: 400;
-  }
-
-  .fa-icon.brands {
-    font-family: "Font Awesome 7 Brands";
-    font-weight: 400;
+  .bootstrap-icon {
+    font-family: "bootstrap-icons";
+    font-style: normal;
+    font-weight: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   .icon-btn:hover {

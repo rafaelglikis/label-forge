@@ -1,29 +1,27 @@
 <script lang="ts">
-  import { fontAwesomeIcons } from "./font-awesome-icons";
+  import { tablerIcons } from "./tabler-icons";
 
-  let { query = $bindable(""), onselect = (_name: string) => {} } = $props();
+  let { query = $bindable(""), onselect = (_token: string) => {} } = $props();
   let recentIcons = $state([
-    "solid:star",
-    "solid:heart",
-    "solid:check",
-    "solid:tag",
-    "solid:print",
-    "solid:gift",
+    "outline:star",
+    "outline:heart",
+    "outline:check",
+    "outline:tag",
+    "outline:printer",
+    "outline:gift",
   ]);
 
   const filteredIcons = $derived(
-    fontAwesomeIcons.filter((icon) => {
+    tablerIcons.filter((icon) => {
       const q = query.trim().toLowerCase();
       if (!q) return true;
-      return (
-        icon.searchText.includes(q)
-      );
+      return icon.searchText.includes(q);
     }),
   );
 
-  const recentFontAwesomeIcons = $derived(
+  const recentTablerIcons = $derived(
     recentIcons
-      .map((token) => fontAwesomeIcons.find((icon) => icon.token === token))
+      .map((token) => tablerIcons.find((icon) => icon.token === token))
       .filter((icon) => icon !== undefined),
   );
 
@@ -36,26 +34,28 @@
   }
 </script>
 
-<font-awesome-picker>
+<tabler-icons-picker>
   <div class="header">
-    <h3>Pick a Font Awesome icon</h3>
+    <h3>Pick a Tabler icon</h3>
     <input bind:value={query} placeholder="Search icons..." />
   </div>
 
   <div class="grid-container">
-    {#if recentFontAwesomeIcons.length > 0 && !query.trim()}
+    {#if recentTablerIcons.length > 0 && !query.trim()}
       <div class="section">
         <p>Recent</p>
         <div class="grid">
-          {#each recentFontAwesomeIcons as icon}
+          {#each recentTablerIcons as icon}
             <button
               onclick={() => selectIcon(icon.token)}
               class="icon-btn"
-              title={`${icon.label} (${icon.style})`}
+              title={`${icon.label} (${icon.style}, ${icon.category})`}
             >
-              <span class="fa-icon {icon.style}">
-                {icon.unicode}
-              </span>
+              <svg class="tabler-icon {icon.style}" viewBox="0 0 24 24" aria-hidden="true">
+                {#each icon.node as [tag, attrs]}
+                  <svelte:element this={tag} {...attrs} />
+                {/each}
+              </svg>
             </button>
           {/each}
         </div>
@@ -63,26 +63,28 @@
     {/if}
 
     <div class="section">
-      <p>{query.trim() ? `${filteredIcons.length} Results` : "All Free Icons"}</p>
+      <p>{query.trim() ? `${filteredIcons.length} Results` : "All Tabler Icons"}</p>
       <div class="grid">
         {#each filteredIcons as icon}
           <button
             onclick={() => selectIcon(icon.token)}
             class="icon-btn"
-            title={`${icon.label} (${icon.style})`}
+            title={`${icon.label} (${icon.style}, ${icon.category})`}
           >
-            <span class="fa-icon {icon.style}">
-              {icon.unicode}
-            </span>
+            <svg class="tabler-icon {icon.style}" viewBox="0 0 24 24" aria-hidden="true">
+              {#each icon.node as [tag, attrs]}
+                <svelte:element this={tag} {...attrs} />
+              {/each}
+            </svg>
           </button>
         {/each}
       </div>
     </div>
   </div>
-</font-awesome-picker>
+</tabler-icons-picker>
 
 <style>
-  font-awesome-picker {
+  tabler-icons-picker {
     border: 1px solid #ccc;
     border-radius: 8px;
     background-color: #f8f8f8;
@@ -152,26 +154,29 @@
   }
 
   .icon-btn {
-    width: 2em;
-    height: 2em;
-    font-size: 1.25em;
-    line-height: 1.75em;
+    width: 2.5em;
+    height: 2.5em;
+    padding: 0.35em;
     border-radius: 0.25em;
   }
 
-  .fa-icon.solid {
-    font-family: "Font Awesome 7 Free";
-    font-weight: 900;
+  .tabler-icon {
+    display: block;
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
-  .fa-icon.regular {
-    font-family: "Font Awesome 7 Free";
-    font-weight: 400;
+  .tabler-icon.outline {
+    fill: none;
   }
 
-  .fa-icon.brands {
-    font-family: "Font Awesome 7 Brands";
-    font-weight: 400;
+  .tabler-icon.filled {
+    fill: currentColor;
+    stroke: none;
   }
 
   .icon-btn:hover {

@@ -23,9 +23,15 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.2.0",
+    "@heroicons/react": "^2.2.0",
     "@material-design-icons/font": "^0.14.15",
     "@material-design-icons/svg": "^0.14.15",
+    "@phosphor-icons/web": "^2.1.2",
+    "@tabler/icons": "^3.44.0",
     "@types/web-bluetooth": "^0.0.21",
+    "bootstrap-icons": "^1.13.1",
+    "boxicons": "^2.1.4",
+    "ionicons": "^8.0.13",
     "lucide": "^1.18.0",
     "remixicon": "^4.9.1"
   }

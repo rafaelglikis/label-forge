@@ -1,9 +1,7 @@
 <script lang="ts">
   import { remixIcons } from "./remix-icons";
 
-  const { onselect = (_token: string) => {} } = $props();
-
-  let query = $state("");
+  let { query = $bindable(""), onselect = (_token: string) => {} } = $props();
   let recentIcons = $state([
     "star-line",
     "heart-line",

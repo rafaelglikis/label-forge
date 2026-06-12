@@ -20,11 +20,27 @@ type IconMetadata = {
 }
 
 type LucideIconNode = [string, Record<string, string | number | undefined>][]
+type TablerIconStyle = 'outline' | 'filled'
+type HeroIconStyle = 'outline' | 'solid'
+type PhosphorIconStyle = 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'
+
+type TablerIconMetadata = {
+  name: string
+  category?: string
+  tags?: (string | number)[]
+  styles?: Partial<Record<TablerIconStyle, unknown>>
+}
 
 const fontAwesomeIconModuleId = 'virtual:font-awesome-icons'
 const materialIconModuleId = 'virtual:material-icons'
 const lucideIconModuleId = 'virtual:lucide-icons'
 const remixIconModuleId = 'virtual:remix-icons'
+const boxIconModuleId = 'virtual:boxicons'
+const tablerIconModuleId = 'virtual:tabler-icons'
+const bootstrapIconModuleId = 'virtual:bootstrap-icons'
+const heroIconModuleId = 'virtual:heroicons'
+const phosphorIconModuleId = 'virtual:phosphor-icons'
+const ionIconModuleId = 'virtual:ionicons'
 
 function fontAwesomeIconData(): Plugin {
   return {
@@ -217,6 +233,355 @@ function remixIconData(): Plugin {
   }
 }
 
+function boxIconData(): Plugin {
+  return {
+    name: 'box-icon-data',
+    resolveId(id) {
+      if (id === boxIconModuleId) return id
+    },
+    load(id) {
+      if (id !== boxIconModuleId) return
+
+      const cssPath = fileURLToPath(
+        new URL('./node_modules/boxicons/css/boxicons.css', import.meta.url),
+      )
+      const styleByPrefix = {
+        bx: 'regular',
+        bxs: 'solid',
+        bxl: 'logos',
+      } as const
+      const icons = [
+        ...readFileSync(cssPath, 'utf8').matchAll(
+          /\.((?:bx|bxs|bxl)-[^:]+):before\s*\{\s*content:\s*"\\([a-f0-9]+)";\s*\}/g,
+        ),
+      ]
+        .map((match) => {
+          const name = match[1]
+          const prefix = name.split('-')[0] as keyof typeof styleByPrefix
+          const label = name
+            .replace(/^(?:bx|bxs|bxl)-/, '')
+            .split('-')
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ')
+          const style = styleByPrefix[prefix]
+
+          return {
+            name,
+            label,
+            style,
+            unicode: String.fromCodePoint(parseInt(match[2], 16)),
+            searchText: `${name} ${label} ${style}`.toLowerCase(),
+          }
+        })
+        .sort(
+          (a, b) =>
+            a.label.localeCompare(b.label) || a.style.localeCompare(b.style),
+        )
+
+      return `export default ${JSON.stringify(icons)}`
+    },
+  }
+}
+
+function tablerIconData(): Plugin {
+  return {
+    name: 'tabler-icon-data',
+    resolveId(id) {
+      if (id === tablerIconModuleId) return id
+    },
+    load(id) {
+      if (id !== tablerIconModuleId) return
+
+      const metadataPath = fileURLToPath(
+        new URL('./node_modules/@tabler/icons/icons.json', import.meta.url),
+      )
+      const outlineNodesPath = fileURLToPath(
+        new URL(
+          './node_modules/@tabler/icons/tabler-nodes-outline.json',
+          import.meta.url,
+        ),
+      )
+      const filledNodesPath = fileURLToPath(
+        new URL(
+          './node_modules/@tabler/icons/tabler-nodes-filled.json',
+          import.meta.url,
+        ),
+      )
+      const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<
+        string,
+        TablerIconMetadata
+      >
+      const nodes = {
+        outline: JSON.parse(readFileSync(outlineNodesPath, 'utf8')) as Record<
+          string,
+          LucideIconNode
+        >,
+        filled: JSON.parse(readFileSync(filledNodesPath, 'utf8')) as Record<
+          string,
+          LucideIconNode
+        >,
+      }
+      const styles = ['outline', 'filled'] satisfies TablerIconStyle[]
+      const icons = Object.values(metadata)
+        .flatMap((icon) =>
+          styles
+            .filter((style) => icon.styles?.[style] && nodes[style][icon.name])
+            .map((style) => {
+              const label = icon.name
+                .split('-')
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ')
+
+              return {
+                name: icon.name,
+                label,
+                style,
+                category: icon.category ?? '',
+                node: nodes[style][icon.name],
+                searchText: [
+                  icon.name,
+                  label,
+                  style,
+                  icon.category ?? '',
+                  ...(icon.tags ?? []),
+                ]
+                  .join(' ')
+                  .toLowerCase(),
+              }
+            }),
+        )
+        .sort(
+          (a, b) =>
+            a.label.localeCompare(b.label) || a.style.localeCompare(b.style),
+        )
+
+      return `export default ${JSON.stringify(icons)}`
+    },
+  }
+}
+
+function bootstrapIconData(): Plugin {
+  return {
+    name: 'bootstrap-icon-data',
+    resolveId(id) {
+      if (id === bootstrapIconModuleId) return id
+    },
+    load(id) {
+      if (id !== bootstrapIconModuleId) return
+
+      const cssPath = fileURLToPath(
+        new URL(
+          './node_modules/bootstrap-icons/font/bootstrap-icons.css',
+          import.meta.url,
+        ),
+      )
+      const icons = [
+        ...readFileSync(cssPath, 'utf8').matchAll(
+          /\.bi-([^:]+)::before\s*\{\s*content:\s*"\\([a-f0-9]+)";\s*\}/g,
+        ),
+      ]
+        .map((match) => {
+          const name = match[1]
+          const style = name.endsWith('-fill') ? 'fill' : 'regular'
+          const label = name
+            .replace(/-fill$/, '')
+            .split('-')
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ')
+
+          return {
+            name,
+            label,
+            style,
+            unicode: String.fromCodePoint(parseInt(match[2], 16)),
+            searchText: `${name} ${label} ${style}`.toLowerCase(),
+          }
+        })
+        .sort(
+          (a, b) =>
+            a.label.localeCompare(b.label) || a.style.localeCompare(b.style),
+        )
+
+      return `export default ${JSON.stringify(icons)}`
+    },
+  }
+}
+
+function heroIconData(): Plugin {
+  return {
+    name: 'hero-icon-data',
+    resolveId(id) {
+      if (id === heroIconModuleId) return id
+    },
+    load(id) {
+      if (id !== heroIconModuleId) return
+
+      const packagePath = fileURLToPath(
+        new URL('./node_modules/@heroicons/react/24/', import.meta.url),
+      )
+      const styles = ['outline', 'solid'] satisfies HeroIconStyle[]
+      const attrName = (name: string) => name.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)
+      const parseAttrs = (source: string) => {
+        const attrs: Record<string, string | number | undefined> = {}
+        for (const match of source.matchAll(/("?[A-Za-z-]+"?):\s*("[^"]*"|[0-9.]+)/g)) {
+          const name = match[1].replaceAll('"', '')
+          const raw = match[2]
+          attrs[attrName(name)] = raw.startsWith('"') ? raw.slice(1, -1) : Number(raw)
+        }
+        return attrs
+      }
+      const icons = styles.flatMap((style) => {
+        const iconsPath = `${packagePath}/${style}`
+        return readdirSync(iconsPath)
+          .filter((file) => file.endsWith('Icon.js') && file !== 'index.js')
+          .map((file) => {
+            const componentName = file.slice(0, -7)
+            const name = componentName
+              .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+              .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+              .toLowerCase()
+            const label = name
+              .split('-')
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join(' ')
+            const source = readFileSync(`${iconsPath}/${file}`, 'utf8')
+            const node = [
+              ...source.matchAll(/React\.createElement\("(path)"\s*,\s*\{([\s\S]*?)\}\)/g),
+            ].map((match) => [match[1], parseAttrs(match[2])] as LucideIconNode[number])
+
+            return {
+              name,
+              label,
+              style,
+              node,
+              searchText: `${name} ${label} ${style}`.toLowerCase(),
+            }
+          })
+          .filter((icon) => icon.node.length > 0)
+      })
+
+      return `export default ${JSON.stringify(
+        icons.sort(
+          (a, b) =>
+            a.label.localeCompare(b.label) || a.style.localeCompare(b.style),
+        ),
+      )}`
+    },
+  }
+}
+
+function phosphorIconData(): Plugin {
+  return {
+    name: 'phosphor-icon-data',
+    resolveId(id) {
+      if (id === phosphorIconModuleId) return id
+    },
+    load(id) {
+      if (id !== phosphorIconModuleId) return
+
+      const packagePath = fileURLToPath(
+        new URL('./node_modules/@phosphor-icons/web/src/', import.meta.url),
+      )
+      const styles = ['thin', 'light', 'regular', 'bold', 'fill', 'duotone'] satisfies PhosphorIconStyle[]
+      const icons = styles.flatMap((style) => {
+        const cssPath = `${packagePath}/${style}/style.css`
+        return [...readFileSync(cssPath, 'utf8').matchAll(/\.ph\.ph-([^:]+):before\s*\{\s*content:\s*"\\([a-f0-9]+)";\s*\}/g)].map(
+          (match) => {
+            const name = match[1]
+            const label = name
+              .split('-')
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join(' ')
+
+            return {
+              name,
+              label,
+              style,
+              unicode: String.fromCodePoint(parseInt(match[2], 16)),
+              searchText: `${name} ${label} ${style}`.toLowerCase(),
+            }
+          },
+        )
+      })
+
+      return `export default ${JSON.stringify(
+        icons.sort(
+          (a, b) =>
+            a.label.localeCompare(b.label) || a.style.localeCompare(b.style),
+        ),
+      )}`
+    },
+  }
+}
+
+function ionIconData(): Plugin {
+  return {
+    name: 'ion-icon-data',
+    resolveId(id) {
+      if (id === ionIconModuleId) return id
+    },
+    load(id) {
+      if (id !== ionIconModuleId) return
+
+      const metadataPath = fileURLToPath(
+        new URL('./node_modules/ionicons/dist/ionicons.json', import.meta.url),
+      )
+      const svgPath = fileURLToPath(
+        new URL('./node_modules/ionicons/dist/svg/', import.meta.url),
+      )
+      const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as {
+        icons: { name: string; tags?: string[] }[]
+      }
+      const attrName = (name: string) => name.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)
+      const parseAttrs = (source: string) => {
+        const attrs: Record<string, string | number | undefined> = {}
+        for (const match of source.matchAll(/([\w-]+)=['"]([^'"]*)['"]/g)) {
+          const name = attrName(match[1])
+          const value = match[2]
+          const numeric = Number(value)
+          attrs[name] = value && Number.isFinite(numeric) ? numeric : value
+        }
+        return attrs
+      }
+      const icons = metadata.icons
+        .map((icon) => {
+          const source = readFileSync(`${svgPath}/${icon.name}.svg`, 'utf8')
+          const node = [
+            ...source.matchAll(/<(path|circle|ellipse|line|rect|polyline|polygon)\b([^>]*)\/?>(?:<\/\1>)?/g),
+          ].map((match) => [match[1], parseAttrs(match[2])] as LucideIconNode[number])
+          const style = icon.name.endsWith('-outline')
+            ? 'outline'
+            : icon.name.endsWith('-sharp')
+              ? 'sharp'
+              : 'filled'
+          const label = icon.name
+            .replace(/-(?:outline|sharp)$/, '')
+            .split('-')
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ')
+
+          return {
+            name: icon.name,
+            label,
+            style,
+            viewBoxSize: 512,
+            node,
+            searchText: [icon.name, label, style, ...(icon.tags ?? [])]
+              .join(' ')
+              .toLowerCase(),
+          }
+        })
+        .filter((icon) => icon.node.length > 0)
+        .sort(
+          (a, b) =>
+            a.label.localeCompare(b.label) || a.style.localeCompare(b.style),
+        )
+
+      return `export default ${JSON.stringify(icons)}`
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
@@ -225,6 +590,12 @@ export default defineConfig({
     materialIconData(),
     lucideIconData(),
     remixIconData(),
+    boxIconData(),
+    tablerIconData(),
+    bootstrapIconData(),
+    heroIconData(),
+    phosphorIconData(),
+    ionIconData(),
     svelte(),
   ],
 })
