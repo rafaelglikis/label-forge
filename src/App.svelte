@@ -95,6 +95,33 @@
     | CanvasRenderingContext2D
     | OffscreenCanvasRenderingContext2D;
 
+  type AssetTab =
+    | "emoji"
+    | "font-awesome"
+    | "material-icons"
+    | "lucide-icons"
+    | "remix-icons"
+    | "box-icons"
+    | "tabler-icons"
+    | "bootstrap-icons"
+    | "hero-icons"
+    | "phosphor-icons"
+    | "ion-icons";
+
+  const assetTabs: { id: AssetTab; label: string; title: string }[] = [
+    { id: "emoji", label: "Emoji", title: "Emoji" },
+    { id: "font-awesome", label: "Font Awesome", title: "Font Awesome" },
+    { id: "material-icons", label: "Material Icons", title: "Material Icons" },
+    { id: "lucide-icons", label: "Lucide", title: "Lucide Icons" },
+    { id: "remix-icons", label: "Remix", title: "Remix Icon" },
+    { id: "box-icons", label: "Boxicons", title: "Boxicons" },
+    { id: "tabler-icons", label: "Tabler", title: "Tabler Icons" },
+    { id: "bootstrap-icons", label: "Bootstrap", title: "Bootstrap Icons" },
+    { id: "hero-icons", label: "Heroicons", title: "Heroicons" },
+    { id: "phosphor-icons", label: "Phosphor", title: "Phosphor Icons" },
+    { id: "ion-icons", label: "Ionicons", title: "Ionicons" },
+  ];
+
   // Dimensions in mm (loaded from localStorage)
   let label_width_mm = $state(
     parseFloat(localStorage.getItem("label_width_mm") || "40"),
@@ -115,19 +142,12 @@
   let margin_x = $derived(Math.round(margin_width_mm * 8));
   let margin_y = $derived(Math.round(margin_height_mm * 8));
   let text = $state(sessionStorage.getItem("text") || "");
-  let show_emoji = $state(false);
-  let show_font_awesome = $state(false);
-  let show_material_icons = $state(false);
-  let show_lucide_icons = $state(false);
-  let show_remix_icons = $state(false);
-  let show_box_icons = $state(false);
-  let show_tabler_icons = $state(false);
-  let show_bootstrap_icons = $state(false);
-  let show_hero_icons = $state(false);
-  let show_phosphor_icons = $state(false);
-  let show_ion_icons = $state(false);
+  let show_asset_picker = $state(false);
+  let active_asset_tab = $state<AssetTab>("emoji");
   let icon_search_query = $state("");
   let textarea: HTMLTextAreaElement | undefined = $state();
+  let asset_picker: HTMLElement | undefined = $state();
+  let asset_picker_button: HTMLButtonElement | undefined = $state();
 
   // Font size settings (loaded from localStorage)
   let auto_font_size = $state(
@@ -915,6 +935,19 @@
   });
 
   onMount(() => {
+    function closeAssetPickerOnOutsidePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node) || !show_asset_picker) return;
+      if (asset_picker?.contains(target)) return;
+      if (asset_picker_button?.contains(target)) return;
+      show_asset_picker = false;
+    }
+
+    document.addEventListener(
+      "pointerdown",
+      closeAssetPickerOnOutsidePointerDown,
+    );
+
     // Force loading of fonts at start, so the canvas renderer can measure them.
     const fonts = [
       new FontFace(
@@ -967,6 +1000,13 @@
     Promise.all(fonts.map((font) => font.load())).then(() => {
       draw();
     });
+
+    return () => {
+      document.removeEventListener(
+        "pointerdown",
+        closeAssetPickerOnOutsidePointerDown,
+      );
+    };
   });
 
   async function printLabel() {
@@ -1087,475 +1127,724 @@
       >
       </button>
       <button
-        class="smile"
-        aria-pressed={show_emoji}
-        aria-label="Show Emoji Selector"
+        bind:this={asset_picker_button}
+        class="assets"
+        aria-pressed={show_asset_picker}
+        aria-label="Show Emoji and Icon Selector"
+        title="Emoji and icons"
         onclick={() => {
-          show_emoji = !show_emoji;
-          if (show_emoji) show_font_awesome = false;
-          if (show_emoji) show_material_icons = false;
-          if (show_emoji) show_lucide_icons = false;
-          if (show_emoji) show_remix_icons = false;
-          if (show_emoji) show_box_icons = false;
-          if (show_emoji) show_tabler_icons = false;
-          if (show_emoji) show_bootstrap_icons = false;
-          if (show_emoji) show_hero_icons = false;
-          if (show_emoji) show_phosphor_icons = false;
-          if (show_emoji) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="font-awesome"
-        aria-pressed={show_font_awesome}
-        aria-label="Show Font Awesome Icon Selector"
-        title="Font Awesome"
-        onclick={() => {
-          show_font_awesome = !show_font_awesome;
-          if (show_font_awesome) show_emoji = false;
-          if (show_font_awesome) show_material_icons = false;
-          if (show_font_awesome) show_lucide_icons = false;
-          if (show_font_awesome) show_remix_icons = false;
-          if (show_font_awesome) show_box_icons = false;
-          if (show_font_awesome) show_tabler_icons = false;
-          if (show_font_awesome) show_bootstrap_icons = false;
-          if (show_font_awesome) show_hero_icons = false;
-          if (show_font_awesome) show_phosphor_icons = false;
-          if (show_font_awesome) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="material-icons"
-        aria-pressed={show_material_icons}
-        aria-label="Show Material Icon Selector"
-        title="Material Icons"
-        onclick={() => {
-          show_material_icons = !show_material_icons;
-          if (show_material_icons) show_emoji = false;
-          if (show_material_icons) show_font_awesome = false;
-          if (show_material_icons) show_lucide_icons = false;
-          if (show_material_icons) show_remix_icons = false;
-          if (show_material_icons) show_box_icons = false;
-          if (show_material_icons) show_tabler_icons = false;
-          if (show_material_icons) show_bootstrap_icons = false;
-          if (show_material_icons) show_hero_icons = false;
-          if (show_material_icons) show_phosphor_icons = false;
-          if (show_material_icons) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="lucide-icons"
-        aria-pressed={show_lucide_icons}
-        aria-label="Show Lucide Icon Selector"
-        title="Lucide Icons"
-        onclick={() => {
-          show_lucide_icons = !show_lucide_icons;
-          if (show_lucide_icons) show_emoji = false;
-          if (show_lucide_icons) show_font_awesome = false;
-          if (show_lucide_icons) show_material_icons = false;
-          if (show_lucide_icons) show_remix_icons = false;
-          if (show_lucide_icons) show_box_icons = false;
-          if (show_lucide_icons) show_tabler_icons = false;
-          if (show_lucide_icons) show_bootstrap_icons = false;
-          if (show_lucide_icons) show_hero_icons = false;
-          if (show_lucide_icons) show_phosphor_icons = false;
-          if (show_lucide_icons) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="remix-icons"
-        aria-pressed={show_remix_icons}
-        aria-label="Show Remix Icon Selector"
-        title="Remix Icon"
-        onclick={() => {
-          show_remix_icons = !show_remix_icons;
-          if (show_remix_icons) show_emoji = false;
-          if (show_remix_icons) show_font_awesome = false;
-          if (show_remix_icons) show_material_icons = false;
-          if (show_remix_icons) show_lucide_icons = false;
-          if (show_remix_icons) show_box_icons = false;
-          if (show_remix_icons) show_tabler_icons = false;
-          if (show_remix_icons) show_bootstrap_icons = false;
-          if (show_remix_icons) show_hero_icons = false;
-          if (show_remix_icons) show_phosphor_icons = false;
-          if (show_remix_icons) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="box-icons"
-        aria-pressed={show_box_icons}
-        aria-label="Show Boxicons Selector"
-        title="Boxicons"
-        onclick={() => {
-          show_box_icons = !show_box_icons;
-          if (show_box_icons) show_emoji = false;
-          if (show_box_icons) show_font_awesome = false;
-          if (show_box_icons) show_material_icons = false;
-          if (show_box_icons) show_lucide_icons = false;
-          if (show_box_icons) show_remix_icons = false;
-          if (show_box_icons) show_tabler_icons = false;
-          if (show_box_icons) show_bootstrap_icons = false;
-          if (show_box_icons) show_hero_icons = false;
-          if (show_box_icons) show_phosphor_icons = false;
-          if (show_box_icons) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="tabler-icons"
-        aria-pressed={show_tabler_icons}
-        aria-label="Show Tabler Icon Selector"
-        title="Tabler Icons"
-        onclick={() => {
-          show_tabler_icons = !show_tabler_icons;
-          if (show_tabler_icons) show_emoji = false;
-          if (show_tabler_icons) show_font_awesome = false;
-          if (show_tabler_icons) show_material_icons = false;
-          if (show_tabler_icons) show_lucide_icons = false;
-          if (show_tabler_icons) show_remix_icons = false;
-          if (show_tabler_icons) show_box_icons = false;
-          if (show_tabler_icons) show_bootstrap_icons = false;
-          if (show_tabler_icons) show_hero_icons = false;
-          if (show_tabler_icons) show_phosphor_icons = false;
-          if (show_tabler_icons) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="bootstrap-icons"
-        aria-pressed={show_bootstrap_icons}
-        aria-label="Show Bootstrap Icon Selector"
-        title="Bootstrap Icons"
-        onclick={() => {
-          show_bootstrap_icons = !show_bootstrap_icons;
-          if (show_bootstrap_icons) show_emoji = false;
-          if (show_bootstrap_icons) show_font_awesome = false;
-          if (show_bootstrap_icons) show_material_icons = false;
-          if (show_bootstrap_icons) show_lucide_icons = false;
-          if (show_bootstrap_icons) show_remix_icons = false;
-          if (show_bootstrap_icons) show_box_icons = false;
-          if (show_bootstrap_icons) show_tabler_icons = false;
-          if (show_bootstrap_icons) show_hero_icons = false;
-          if (show_bootstrap_icons) show_phosphor_icons = false;
-          if (show_bootstrap_icons) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="hero-icons"
-        aria-pressed={show_hero_icons}
-        aria-label="Show Heroicons Selector"
-        title="Heroicons"
-        onclick={() => {
-          show_hero_icons = !show_hero_icons;
-          if (show_hero_icons) show_emoji = false;
-          if (show_hero_icons) show_font_awesome = false;
-          if (show_hero_icons) show_material_icons = false;
-          if (show_hero_icons) show_lucide_icons = false;
-          if (show_hero_icons) show_remix_icons = false;
-          if (show_hero_icons) show_box_icons = false;
-          if (show_hero_icons) show_tabler_icons = false;
-          if (show_hero_icons) show_bootstrap_icons = false;
-          if (show_hero_icons) show_phosphor_icons = false;
-          if (show_hero_icons) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="phosphor-icons"
-        aria-pressed={show_phosphor_icons}
-        aria-label="Show Phosphor Icon Selector"
-        title="Phosphor Icons"
-        onclick={() => {
-          show_phosphor_icons = !show_phosphor_icons;
-          if (show_phosphor_icons) show_emoji = false;
-          if (show_phosphor_icons) show_font_awesome = false;
-          if (show_phosphor_icons) show_material_icons = false;
-          if (show_phosphor_icons) show_lucide_icons = false;
-          if (show_phosphor_icons) show_remix_icons = false;
-          if (show_phosphor_icons) show_box_icons = false;
-          if (show_phosphor_icons) show_tabler_icons = false;
-          if (show_phosphor_icons) show_bootstrap_icons = false;
-          if (show_phosphor_icons) show_hero_icons = false;
-          if (show_phosphor_icons) show_ion_icons = false;
-        }}
-      >
-      </button>
-      <button
-        class="ion-icons"
-        aria-pressed={show_ion_icons}
-        aria-label="Show Ionicons Selector"
-        title="Ionicons"
-        onclick={() => {
-          show_ion_icons = !show_ion_icons;
-          if (show_ion_icons) show_emoji = false;
-          if (show_ion_icons) show_font_awesome = false;
-          if (show_ion_icons) show_material_icons = false;
-          if (show_ion_icons) show_lucide_icons = false;
-          if (show_ion_icons) show_remix_icons = false;
-          if (show_ion_icons) show_box_icons = false;
-          if (show_ion_icons) show_tabler_icons = false;
-          if (show_ion_icons) show_bootstrap_icons = false;
-          if (show_ion_icons) show_hero_icons = false;
-          if (show_ion_icons) show_phosphor_icons = false;
+          show_asset_picker = !show_asset_picker;
         }}
       >
       </button>
     </div>
-    {#if show_emoji}
-      <Emoji onselect={insertText} />
-    {/if}
-    {#if show_font_awesome}
-      <FontAwesome bind:query={icon_search_query} onselect={(token: string) => insertText(`{fa:${token}}`)} />
-    {/if}
-    {#if show_material_icons}
-      <MaterialIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{mi:${token}}`)} />
-    {/if}
-    {#if show_lucide_icons}
-      <LucideIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{lu:${token}}`)} />
-    {/if}
-    {#if show_remix_icons}
-      <RemixIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ri:${token}}`)} />
-    {/if}
-    {#if show_box_icons}
-      <BoxIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{bx:${token}}`)} />
-    {/if}
-    {#if show_tabler_icons}
-      <TablerIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ti:${token}}`)} />
-    {/if}
-    {#if show_bootstrap_icons}
-      <BootstrapIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{bi:${token}}`)} />
-    {/if}
-    {#if show_hero_icons}
-      <HeroIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{hi:${token}}`)} />
-    {/if}
-    {#if show_phosphor_icons}
-      <PhosphorIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ph:${token}}`)} />
-    {/if}
-    {#if show_ion_icons}
-      <IonIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{io:${token}}`)} />
+    {#if show_asset_picker}
+      <section
+        bind:this={asset_picker}
+        class="asset-picker"
+        aria-label="Emoji and icon picker"
+      >
+        <div class="asset-tabs" role="tablist" aria-label="Asset type">
+          {#each assetTabs as tab}
+            <button
+              type="button"
+              class:active={active_asset_tab === tab.id}
+              role="tab"
+              aria-selected={active_asset_tab === tab.id}
+              title={tab.title}
+              onclick={() => (active_asset_tab = tab.id)}
+            >
+              {tab.label}
+            </button>
+          {/each}
+        </div>
+        {#if active_asset_tab === "emoji"}
+          <Emoji onselect={insertText} />
+        {:else if active_asset_tab === "font-awesome"}
+          <FontAwesome bind:query={icon_search_query} onselect={(token: string) => insertText(`{fa:${token}}`)} />
+        {:else if active_asset_tab === "material-icons"}
+          <MaterialIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{mi:${token}}`)} />
+        {:else if active_asset_tab === "lucide-icons"}
+          <LucideIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{lu:${token}}`)} />
+        {:else if active_asset_tab === "remix-icons"}
+          <RemixIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ri:${token}}`)} />
+        {:else if active_asset_tab === "box-icons"}
+          <BoxIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{bx:${token}}`)} />
+        {:else if active_asset_tab === "tabler-icons"}
+          <TablerIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ti:${token}}`)} />
+        {:else if active_asset_tab === "bootstrap-icons"}
+          <BootstrapIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{bi:${token}}`)} />
+        {:else if active_asset_tab === "hero-icons"}
+          <HeroIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{hi:${token}}`)} />
+        {:else if active_asset_tab === "phosphor-icons"}
+          <PhosphorIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ph:${token}}`)} />
+        {:else if active_asset_tab === "ion-icons"}
+          <IonIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{io:${token}}`)} />
+        {/if}
+      </section>
     {/if}
     <textarea
       bind:this={textarea}
       bind:value={text}
       placeholder="Write text here..."
     ></textarea>
-    <details>
-      <summary>⚙️ Configuration</summary>
-      <div class="config">
-        <label>
-          Label Width (mm): <input
-            type="number"
-            bind:value={label_width_mm}
-            min="1"
-            max="150"
-            step="0.1"
-          />
-        </label>
-        <label>
-          Label Height (mm): <input
-            type="number"
-            bind:value={label_height_mm}
-            min="1"
-            max="18"
-            step="0.1"
-          />
-        </label>
-        <label>
-          Margin Width (mm): <input
-            type="number"
-            bind:value={margin_width_mm}
-            min="0"
-            max="10"
-            step="0.1"
-          />
-        </label>
-        <label>
-          Margin Height (mm): <input
-            type="number"
-            bind:value={margin_height_mm}
-            min="0"
-            max="10"
-            step="0.1"
-          />
-        </label>
-        <label>
-          <input type="checkbox" bind:checked={auto_font_size} />
-          Automatic Font Size
-        </label>
-        <label>
-          <input type="checkbox" bind:checked={reverse_print} />
-          Reverse Around Text
-        </label>
-        <label>
-          Font Size:
-          <input
-            type="range"
-            min="8"
-            max="144"
-            step="1"
-            bind:value={font_size}
-            disabled={auto_font_size}
-            list="markers"
-          />
-          <datalist id="markers">
-            <option value="12"></option>
-            <option value="24"></option>
-            <option value="32"></option>
-            <option value="48"></option>
-            <option value="64"></option>
-            <option value="96"></option>
-            <option value="128"></option>
-          </datalist>
-          <span>{font_size.toFixed(0)}</span>
-        </label>
+    <aside class="side-panel">
+      <section class="config-panel" aria-label="Configuration">
+        <h2>Configuration</h2>
+        <div class="config">
+          <label>
+            Label Width (mm): <input
+              type="number"
+              bind:value={label_width_mm}
+              min="1"
+              max="150"
+              step="0.1"
+            />
+          </label>
+          <label>
+            Label Height (mm): <input
+              type="number"
+              bind:value={label_height_mm}
+              min="1"
+              max="18"
+              step="0.1"
+            />
+          </label>
+          <label>
+            Margin Width (mm): <input
+              type="number"
+              bind:value={margin_width_mm}
+              min="0"
+              max="10"
+              step="0.1"
+            />
+          </label>
+          <label>
+            Margin Height (mm): <input
+              type="number"
+              bind:value={margin_height_mm}
+              min="0"
+              max="10"
+              step="0.1"
+            />
+          </label>
+          <label>
+            <input type="checkbox" bind:checked={auto_font_size} />
+            Automatic Font Size
+          </label>
+          <label>
+            <input type="checkbox" bind:checked={reverse_print} />
+            Reverse Around Text
+          </label>
+          <label>
+            Font Size:
+            <input
+              type="range"
+              min="8"
+              max="144"
+              step="1"
+              bind:value={font_size}
+              disabled={auto_font_size}
+              list="markers"
+            />
+            <datalist id="markers">
+              <option value="12"></option>
+              <option value="24"></option>
+              <option value="32"></option>
+              <option value="48"></option>
+              <option value="64"></option>
+              <option value="96"></option>
+              <option value="128"></option>
+            </datalist>
+            <span>{font_size.toFixed(0)}</span>
+          </label>
+        </div>
+      </section>
+      <div class="l">
+        <canvas bind:this={canvas} width={label_width} height={label_height}>
+        </canvas>
+        <span>
+          Label size:
+          {(label_width * 0.125).toFixed(1)}
+          ×
+          {(label_height * 0.125).toFixed(1)}
+          mm
+        </span>
+        <span>
+          Margin:
+          {(margin_x * 0.125).toFixed(1)}
+          ×
+          {(margin_y * 0.125).toFixed(1)}
+          mm
+        </span>
       </div>
-    </details>
-    <button onclick={printLabel}>Print Label</button>
-    <div class="l">
-      <canvas bind:this={canvas} width={label_width} height={label_height}>
-      </canvas>
-      <span>
-        Label size:
-        {(label_width * 0.125).toFixed(1)}
-        ×
-        {(label_height * 0.125).toFixed(1)}
-        mm
-      </span>
-      <span>
-        Margin:
-        {(margin_x * 0.125).toFixed(1)}
-        ×
-        {(margin_y * 0.125).toFixed(1)}
-        mm
-      </span>
-    </div>
+      <button class="print-button" onclick={printLabel}>Print Label</button>
+    </aside>
   </div>
 </main>
 
 <style>
-  h1 {
-    font-size: 3.2em;
-    line-height: 1.1;
-    border-bottom: 1px solid #444;
+  main {
+    min-height: 100vh;
+    background:
+      linear-gradient(#fff 0 4rem, transparent 4rem),
+      #f1f3f4;
   }
+
+  h1 {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    box-sizing: border-box;
+    height: 4rem;
+    margin: 0;
+    padding: 0.75rem 1.5rem 0.25rem;
+    border-bottom: 1px solid #dadce0;
+    background: #fff;
+    color: #3c4043;
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1.2;
+  }
+
+  h1::after {
+    content: "Web Bluetooth label editor";
+    display: block;
+    margin-top: 0.15rem;
+    color: #5f6368;
+    font-size: 0.75rem;
+  }
+
   div.bar {
+    position: sticky;
+    top: 4rem;
+    z-index: 19;
     display: flex;
     flex-direction: row;
-    align-items: stretch;
-    justify-content: start;
-    column-gap: 8px;
-    width: 100%;
-  }
-  div.r {
-    display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 2em;
+    justify-content: flex-start;
+    gap: 0.125rem;
+    box-sizing: border-box;
+    width: min(100%, 1180px);
+    min-height: 2.25rem;
+    max-height: 5rem;
+    overflow-y: auto;
+    padding: 0.1875rem 0.5rem;
+    border: 1px solid #dadce0;
+    border-top: 0;
+    border-radius: 0 0 4px 4px;
+    background: #fff;
+    box-shadow: 0 1px 1px rgb(60 64 67 / 0.12);
   }
+
+  div.r {
+    display: grid;
+    grid-template-columns: minmax(0, 760px) minmax(280px, 360px);
+    align-items: start;
+    justify-content: center;
+    gap: 1.5rem;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0 1rem 2rem;
+  }
+
   .r > * {
     display: block;
   }
-  .l {
+
+  .r > :global(font-awesome-picker),
+  .r > :global(material-icons-picker),
+  .r > :global(lucide-icons-picker),
+  .r > :global(remix-icons-picker),
+  .r > :global(box-icons-picker),
+  .r > :global(tabler-icons-picker),
+  .r > :global(bootstrap-icons-picker),
+  .r > :global(hero-icons-picker),
+  .r > :global(phosphor-icons-picker),
+  .r > :global(ion-icons-picker),
+  .r > .asset-picker,
+  .r > textarea {
+    grid-column: 1;
+    grid-row: 2;
+    z-index: 1;
+  }
+
+  .r > :global(font-awesome-picker),
+  .r > :global(material-icons-picker),
+  .r > :global(lucide-icons-picker),
+  .r > :global(remix-icons-picker),
+  .r > :global(box-icons-picker),
+  .r > :global(tabler-icons-picker),
+  .r > :global(bootstrap-icons-picker),
+  .r > :global(hero-icons-picker),
+  .r > :global(phosphor-icons-picker),
+  .r > :global(ion-icons-picker),
+  .r > .asset-picker {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    z-index: 18;
+    margin-top: 0.25rem;
+  }
+
+  .asset-picker {
+    box-sizing: border-box;
+    justify-self: start;
+    width: min(100%, 760px);
+    overflow: hidden;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow:
+      0 2px 6px 2px rgb(60 64 67 / 0.15),
+      0 1px 2px rgb(60 64 67 / 0.3);
+  }
+
+  .asset-tabs {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    padding: 0.375rem 0.5rem;
+    border-bottom: 1px solid #e8eaed;
+    background: #fff;
+  }
+
+  .asset-tabs button {
+    width: auto;
+    min-width: 2.125rem;
+    height: 1.75rem;
+    padding: 0 0.55rem;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: #3c4043;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .asset-tabs button:hover {
+    background: #f1f3f4;
+    box-shadow: none;
+  }
+
+  .asset-tabs button.active {
+    background: #e8f0fe;
+    color: #174ea6;
+  }
+
+  .r > .bar {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  .side-panel {
+    position: sticky;
+    top: 8rem;
+    grid-column: 2;
+    grid-row: 2;
+    display: grid;
+    gap: 1rem;
+    align-self: start;
     width: 100%;
   }
+
+  .l {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(60 64 67 / 0.16);
+  }
+
+  .l::before {
+    content: "Print preview";
+    display: block;
+    margin-bottom: 0.75rem;
+    color: #3c4043;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
   .l > * {
     display: block;
     width: 100%;
   }
+
   .l span {
-    color: #888;
+    margin-top: 0.35rem;
+    color: #5f6368;
+    font-size: 0.78rem;
     text-align: left;
   }
+
   textarea,
   button,
   canvas {
     box-sizing: border-box;
-    width: 100%;
-    border: 1px solid #ccc;
-    border-radius: 12px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
   }
+
   textarea {
-    field-sizing: content;
-    min-height: 1lh;
-    max-height: 10lh;
-    overflow: hidden;
+    width: min(100%, 760px);
+    min-height: 18rem;
+    padding: 4.5rem 4rem;
+    border: none;
+    border-radius: 2px;
+    background: #fff;
+    box-shadow:
+      0 1px 2px rgb(60 64 67 / 0.3),
+      0 1px 3px 1px rgb(60 64 67 / 0.15);
+    color: #202124;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    overflow: auto;
     resize: none;
-    font-size: 24px;
-    padding: 8px;
-    background-color: #ccf;
-    transition: background-color 0.25s ease-in-out;
+    transition:
+      box-shadow 0.18s ease,
+      background-color 0.18s ease;
   }
+
   textarea:hover {
-    background-color: #ddf;
+    background-color: #fff;
+    box-shadow:
+      0 2px 3px rgb(60 64 67 / 0.3),
+      0 4px 8px 3px rgb(60 64 67 / 0.15);
   }
+
+  textarea:focus {
+    outline: none;
+    box-shadow:
+      0 0 0 1px #1a73e8,
+      0 2px 3px rgb(60 64 67 / 0.3),
+      0 4px 8px 3px rgb(60 64 67 / 0.15);
+  }
+
   canvas {
-    border-radius: 32px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    background: #fff;
+    image-rendering: pixelated;
   }
+
   button {
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    background-color: #ddd;
+    width: 100%;
+    padding: 0.55rem 1rem;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #3c4043;
     cursor: pointer;
-    transition: background-color 0.25s ease-in-out;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition:
+      background-color 0.18s ease,
+      box-shadow 0.18s ease,
+      border-color 0.18s ease;
   }
+
   .bar button:hover,
   button:hover {
-    background-color: #ccc;
+    background-color: #f8fafd;
+    box-shadow: 0 1px 2px rgb(60 64 67 / 0.3);
   }
-  details {
-    width: 100%;
+
+  .config-panel {
     box-sizing: border-box;
+    width: 100%;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgb(60 64 67 / 0.12);
   }
+
+  .config-panel h2 {
+    margin: 0;
+    padding: 0.85rem 1rem 0.25rem;
+    color: #3c4043;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .print-button {
+    width: 100%;
+    border-color: #1a73e8;
+    background: #1a73e8;
+    color: #fff;
+    box-shadow: 0 1px 2px rgb(26 115 232 / 0.35);
+  }
+
+  .print-button:hover {
+    border-color: #185abc;
+    background: #185abc;
+    box-shadow: 0 2px 4px rgb(26 115 232 / 0.35);
+  }
+
+  :global(emoji),
+  :global(font-awesome-picker),
+  :global(material-icons-picker),
+  :global(lucide-icons-picker),
+  :global(remix-icons-picker),
+  :global(box-icons-picker),
+  :global(tabler-icons-picker),
+  :global(bootstrap-icons-picker),
+  :global(hero-icons-picker),
+  :global(phosphor-icons-picker),
+  :global(ion-icons-picker) {
+    box-sizing: border-box;
+    justify-self: start;
+    width: min(100%, 760px) !important;
+    overflow: hidden;
+    border: 1px solid #dadce0 !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    box-shadow:
+      0 2px 6px 2px rgb(60 64 67 / 0.15),
+      0 1px 2px rgb(60 64 67 / 0.3) !important;
+  }
+
+  .asset-picker :global(emoji),
+  .asset-picker :global(font-awesome-picker),
+  .asset-picker :global(material-icons-picker),
+  .asset-picker :global(lucide-icons-picker),
+  .asset-picker :global(remix-icons-picker),
+  .asset-picker :global(box-icons-picker),
+  .asset-picker :global(tabler-icons-picker),
+  .asset-picker :global(bootstrap-icons-picker),
+  .asset-picker :global(hero-icons-picker),
+  .asset-picker :global(phosphor-icons-picker),
+  .asset-picker :global(ion-icons-picker) {
+    width: 100% !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .header) {
+    gap: 0.5rem !important;
+    padding: 0.75rem !important;
+    border-bottom: 1px solid #e8eaed !important;
+    background: #fff !important;
+  }
+
+  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) h3) {
+    color: #3c4043 !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    line-height: 1.25rem !important;
+  }
+
+  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) input) {
+    height: 2.25rem !important;
+    padding: 0 0.75rem !important;
+    border: 1px solid #dadce0 !important;
+    border-radius: 4px !important;
+    background: #f8fafd !important;
+    color: #202124 !important;
+    font-size: 0.9rem !important;
+  }
+
+  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) input:focus) {
+    outline: none !important;
+    border-color: #1a73e8 !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 2px #d2e3fc !important;
+  }
+
+  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .grid-container) {
+    height: 16rem !important;
+    padding: 0.75rem !important;
+    background: #fff !important;
+  }
+
+  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .section) {
+    margin-bottom: 0.8rem !important;
+  }
+
+  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .section p) {
+    margin-bottom: 0.45rem !important;
+    color: #5f6368 !important;
+    font-size: 0.6875rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .grid) {
+    gap: 0.25rem !important;
+    max-width: none !important;
+  }
+
+  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .icon-btn),
+  :global(emoji .emoji-btn) {
+    display: grid !important;
+    place-items: center !important;
+    width: 2.125rem !important;
+    height: 2.125rem !important;
+    padding: 0 !important;
+    border-radius: 3px !important;
+    color: #202124 !important;
+    font-size: 1rem !important;
+    line-height: 1 !important;
+  }
+
+  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .icon-btn:hover),
+  :global(emoji .emoji-btn:hover) {
+    background: #f1f3f4 !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) svg) {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+
+  :global(emoji .categories) {
+    gap: 0.25rem !important;
+    padding: 0.375rem 0.5rem !important;
+    border-bottom: 1px solid #e8eaed !important;
+    background: #fff !important;
+  }
+
+  :global(emoji .category-btn) {
+    min-width: 2.125rem !important;
+    height: 2rem !important;
+    border-radius: 3px !important;
+  }
+
+  :global(emoji .category-btn:hover),
+  :global(emoji .category-btn.active) {
+    background: #f1f3f4 !important;
+  }
+
   .config {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5em;
-    padding: 1em;
-    border: 2px solid #ddd;
-    border-radius: 12px;
-    background-color: #f9f9f9;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem 1rem;
+    padding: 0 1rem 1rem;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
   }
+
   .config label {
     display: flex;
+    gap: 0.5rem;
     justify-content: space-between;
     align-items: center;
+    color: #3c4043;
+    font-size: 0.85rem;
     font-weight: 500;
   }
+
   .config input {
+    box-sizing: border-box;
     width: 80px;
-    padding: 0.3em;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid #dadce0;
+    border-radius: 3px;
+    background: #fff;
+    color: #202124;
     text-align: center;
   }
+
+  .config input:focus {
+    outline: 2px solid #d2e3fc;
+    border-color: #1a73e8;
+  }
+
   .config input[type="checkbox"] {
     width: auto;
-    margin-right: 0.5em;
+    margin-right: 0.25rem;
   }
+
   .config input[type="range"] {
     width: calc(100% - 10em);
   }
+
+  .config label:has(input[type="range"]) {
+    grid-column: 1 / -1;
+  }
+
   .config label:has(input[type="checkbox"]) {
     justify-content: flex-start;
   }
+
   .bar button {
-    padding: 16px;
-    background-position-x: center;
-    background-position-y: center;
-    background-color: #ddd;
-    max-width: 28px;
-    border-radius: 6px;
+    width: 1.75rem;
+    height: 1.75rem;
+    max-width: none;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background-color: transparent;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 17px 17px;
+    color: #3c4043;
   }
+
+  .bar button:nth-child(6),
+  .bar button:nth-child(7) {
+    margin-left: 0.375rem;
+    box-shadow: -0.5rem 0 0 -0.45rem #dadce0;
+  }
+
+  .bar button:hover {
+    border-color: transparent;
+    background-color: #f1f3f4;
+    box-shadow: none;
+  }
+
   .bar button[aria-pressed="true"] {
-    background-color: #def;
+    background-color: #e8f0fe;
+    color: #174ea6;
+  }
+
+  @media (max-width: 960px) {
+    div.r {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .side-panel {
+      position: static;
+      grid-column: 1;
+      grid-row: auto;
+    }
+
+    textarea {
+      min-height: 16rem;
+      padding: 2rem 1.5rem;
+    }
+
+    .config {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 560px) {
+    h1 {
+      padding-inline: 1rem;
+    }
+
+    div.r {
+      padding-inline: 0.75rem;
+    }
+
+    div.bar {
+      justify-content: flex-start;
+      border-radius: 0 0 4px 4px;
+    }
+
+    textarea {
+      padding: 1.5rem 1rem;
+    }
   }
   .italic {
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWl0YWxpYy1pY29uIGx1Y2lkZS1pdGFsaWMiPjxsaW5lIHgxPSIxOSIgeDI9IjEwIiB5MT0iNCIgeTI9IjQiLz48bGluZSB4MT0iMTQiIHgyPSI1IiB5MT0iMjAiIHkyPSIyMCIvPjxsaW5lIHgxPSIxNSIgeDI9IjkiIHkxPSI0IiB5Mj0iMjAiLz48L3N2Zz4=")
@@ -1565,52 +1854,12 @@
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWJvbGQtaWNvbiBsdWNpZGUtYm9sZCI+PHBhdGggZD0iTTYgMTJoOWE0IDQgMCAwIDEgMCA4SDdhMSAxIDAgMCAxLTEtMVY1YTEgMSAwIDAgMSAxLTFoN2E0IDQgMCAwIDEgMCA4Ii8+PC9zdmc+")
       no-repeat;
   }
-  .smile {
+  .assets {
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXNtaWxlLWljb24gbHVjaWRlLXNtaWxlIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPjxwYXRoIGQ9Ik04IDE0czEuNSAyIDQgMiA0LTIgNC0yIi8+PGxpbmUgeDE9IjkiIHgyPSI5LjAxIiB5MT0iOSIgeTI9IjkiLz48bGluZSB4MT0iMTUiIHgyPSIxNS4wMSIgeTE9IjkiIHkyPSI5Ii8+PC9zdmc+")
       no-repeat;
   }
   .barcode {
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWJhcmNvZGUtaWNvbiBsdWNpZGUtYmFyY29kZSI+PHBhdGggZD0iTTMgNXYxNCIvPjxwYXRoIGQ9Ik04IDV2MTQiLz48cGF0aCBkPSJNMTIgNXYxNCIvPjxwYXRoIGQ9Ik0xNyA1djE0Ii8+PHBhdGggZD0iTTIxIDV2MTQiLz48L3N2Zz4=")
-      no-repeat;
-  }
-  .font-awesome {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EFA%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .material-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EMI%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .lucide-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3ELU%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .remix-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3ERI%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .box-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EBX%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .tabler-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3ETB%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .bootstrap-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EBI%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .hero-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EHI%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .phosphor-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EPH%3C/text%3E%3C/svg%3E")
-      no-repeat;
-  }
-  .ion-icons {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ctext x='12' y='16' text-anchor='middle' font-family='sans-serif' font-size='11' font-weight='700' fill='black'%3EIO%3C/text%3E%3C/svg%3E")
       no-repeat;
   }
   .fnt-small {
