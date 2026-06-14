@@ -41,3 +41,7 @@ The custom domain is configured through `public/CNAME`:
 ```text
 labelforge.minotaur-lizard.gr
 ```
+
+## Reference
+
+This project was originally based on <https://github.com/dmsc/web-label-printer>.
