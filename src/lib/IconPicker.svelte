@@ -111,12 +111,14 @@
 
 <style>
   icon-picker {
-    display: block;
+    display: flex;
+    flex-direction: column;
     width: 100%;
     background: #fff;
   }
 
   .header {
+    flex: none;
     padding: 0.75rem;
     border-bottom: 1px solid #e8eaed;
   }
@@ -147,26 +149,35 @@
   }
 
   .grid-container {
-    box-sizing: border-box;
-    height: 16rem;
+    flex: 1;
+    min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 0.75rem;
+    padding: 0 0.75rem 0.75rem;
   }
 
   .section {
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.25rem;
   }
 
   .section p,
   .empty {
-    margin: 0 0 0.45rem;
+    margin: 0;
+    padding: 0.75rem 0 0.45rem;
     color: #5f6368;
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     line-height: 1em;
     text-transform: uppercase;
+  }
+
+  /* Keep the pack name visible while scrolling through its icons. */
+  .section p {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
   }
 
   .grid {

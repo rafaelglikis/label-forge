@@ -120,18 +120,23 @@
   let font_size = $state(parseFloat(localStorage.getItem("font_size") || "48"));
   let reverse_print = $state(localStorage.getItem("reverse_print") === "true");
 
+  // Number inputs bind null while cleared mid-edit; keep the last saved value then.
+  function saveNumber(key: string, value: number | null) {
+    if (value !== null) localStorage.setItem(key, value.toString());
+  }
+
   // Save to localStorage
   $effect(() => {
-    localStorage.setItem("label_width_mm", label_width_mm.toString());
-    localStorage.setItem("label_height_mm", label_height_mm.toString());
-    localStorage.setItem("margin_mm", margin_width_mm.toString());
-    localStorage.setItem("margin_height_mm", margin_height_mm.toString());
+    saveNumber("label_width_mm", label_width_mm);
+    saveNumber("label_height_mm", label_height_mm);
+    saveNumber("margin_mm", margin_width_mm);
+    saveNumber("margin_height_mm", margin_height_mm);
   });
 
   // Save font settings to localStorage
   $effect(() => {
     localStorage.setItem("auto_font_size", auto_font_size.toString());
-    localStorage.setItem("font_size", font_size.toString());
+    saveNumber("font_size", font_size);
     localStorage.setItem("reverse_print", reverse_print.toString());
   });
 
@@ -904,7 +909,8 @@
   }
 
   function draw() {
-    if (!canvas) return;
+    // Skip while a dimension input is cleared or invalid mid-edit.
+    if (!canvas || !(label_width > 0 && label_height > 0)) return;
 
     const offscreenCanvas = new OffscreenCanvas(label_width, label_height);
     const off_ctx = offscreenCanvas.getContext("2d");
@@ -1113,120 +1119,123 @@
 <main>
   <h1>LabelForge</h1>
   <div class="r">
-    <div class="bar">
-      <button
-        onclick={() => setAttribute("*")}
-        class="bold"
-        aria-label="Bold Text"
-      >
-      </button>
-      <button
-        onclick={() => setAttribute("_")}
-        class="italic"
-        aria-label="Italic Text"
-      >
-      </button>
-      <button
-        onclick={() => setAttribute("__", "__")}
-        class="fnt-small"
-        aria-label="Smaller Font"
-      >
-      </button>
-      <button
-        onclick={() => setAttribute("^^", "^^")}
-        class="fnt-big"
-        aria-label="Bigger Font"
-      >
-      </button>
-      <button
-        onclick={() => setAttribute("[|", "|]")}
-        class="barcode"
-        aria-label="Barcode"
-      >
-      </button>
-    </div>
     <div class="editor">
-      <textarea
-        bind:this={textarea}
-        bind:value={text}
-        placeholder="Write text here..."
-      ></textarea>
+      <div class="editor-card">
+        <div class="config" role="group" aria-label="Label settings">
+          <div class="group">
+            <label title="Label width (mm)">
+              Dimensions
+              <input
+                type="number"
+                bind:value={label_width_mm}
+                min="1"
+                max="150"
+                step="0.1"
+              />
+            </label>
+            <label title="Label height (mm)">
+              ×
+              <input
+                type="number"
+                bind:value={label_height_mm}
+                min="1"
+                max="18"
+                step="0.1"
+              />
+            </label>
+            <span>mm</span>
+          </div>
+          <div class="group">
+            <label title="Margin width (mm)">
+              Margin
+              <input
+                type="number"
+                bind:value={margin_width_mm}
+                min="0"
+                max="10"
+                step="0.1"
+              />
+            </label>
+            <label title="Margin height (mm)">
+              ×
+              <input
+                type="number"
+                bind:value={margin_height_mm}
+                min="0"
+                max="10"
+                step="0.1"
+              />
+            </label>
+            <span>mm</span>
+          </div>
+          <div class="group">
+            <label>
+              <input type="checkbox" bind:checked={auto_font_size} />
+              Auto size
+            </label>
+            <label>
+              <input type="checkbox" bind:checked={reverse_print} />
+              Reverse
+            </label>
+          </div>
+          <div class="group">
+            {#if !auto_font_size}
+              <label title="Font size (px)">
+                Size
+                <input
+                  type="number"
+                  bind:value={font_size}
+                  min="8"
+                  max="144"
+                  step="1"
+                />
+              </label>
+            {/if}
+          </div>
+        </div>
+        <div class="bar">
+          <button
+            onclick={() => setAttribute("*")}
+            class="bold"
+            aria-label="Bold Text"
+          >
+          </button>
+          <button
+            onclick={() => setAttribute("_")}
+            class="italic"
+            aria-label="Italic Text"
+          >
+          </button>
+          <button
+            onclick={() => setAttribute("__", "__")}
+            class="fnt-small"
+            aria-label="Smaller Font"
+          >
+          </button>
+          <button
+            onclick={() => setAttribute("^^", "^^")}
+            class="fnt-big"
+            aria-label="Bigger Font"
+          >
+          </button>
+          <button
+            onclick={() => setAttribute("[|", "|]")}
+            class="barcode"
+            aria-label="Barcode"
+          >
+          </button>
+        </div>
+        <textarea
+          bind:this={textarea}
+          bind:value={text}
+          placeholder="Write text here..."
+        ></textarea>
+      </div>
       <section class="asset-picker" aria-label="Emoji and icon picker">
         <IconPicker onselect={insertText} />
       </section>
     </div>
     <aside class="side-panel">
-      <section class="config-panel" aria-label="Configuration">
-        <h2>Configuration</h2>
-        <div class="config">
-          <label>
-            Label Width (mm): <input
-              type="number"
-              bind:value={label_width_mm}
-              min="1"
-              max="150"
-              step="0.1"
-            />
-          </label>
-          <label>
-            Label Height (mm): <input
-              type="number"
-              bind:value={label_height_mm}
-              min="1"
-              max="18"
-              step="0.1"
-            />
-          </label>
-          <label>
-            Margin Width (mm): <input
-              type="number"
-              bind:value={margin_width_mm}
-              min="0"
-              max="10"
-              step="0.1"
-            />
-          </label>
-          <label>
-            Margin Height (mm): <input
-              type="number"
-              bind:value={margin_height_mm}
-              min="0"
-              max="10"
-              step="0.1"
-            />
-          </label>
-          <label>
-            <input type="checkbox" bind:checked={auto_font_size} />
-            Automatic Font Size
-          </label>
-          <label>
-            <input type="checkbox" bind:checked={reverse_print} />
-            Reverse Around Text
-          </label>
-          <label>
-            Font Size:
-            <input
-              type="range"
-              min="8"
-              max="144"
-              step="1"
-              bind:value={font_size}
-              disabled={auto_font_size}
-              list="markers"
-            />
-            <datalist id="markers">
-              <option value="12"></option>
-              <option value="24"></option>
-              <option value="32"></option>
-              <option value="48"></option>
-              <option value="64"></option>
-              <option value="96"></option>
-              <option value="128"></option>
-            </datalist>
-            <span>{font_size.toFixed(0)}</span>
-          </label>
-        </div>
-      </section>
       <div class="l">
         <canvas bind:this={canvas} width={label_width} height={label_height}>
         </canvas>
@@ -1252,20 +1261,22 @@
 
 <style>
   main {
-    min-height: 100vh;
-    background:
-      linear-gradient(#fff 0 4rem, transparent 4rem),
-      #f1f3f4;
+    --container-width: 1400px;
+    --gutter: 1.5rem;
+
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f1f3f4;
   }
 
   h1 {
-    position: sticky;
-    top: 0;
-    z-index: 20;
+    flex: none;
     box-sizing: border-box;
     height: 4rem;
     margin: 0;
-    padding: 0.75rem 1.5rem 0.25rem;
+    /* Align the title with the centered content below. */
+    padding: 0.75rem max(var(--gutter), (100% - var(--container-width)) / 2 + var(--gutter)) 0.25rem;
     border-bottom: 1px solid #dadce0;
     background: #fff;
     color: #3c4043;
@@ -1282,93 +1293,77 @@
     font-size: 0.75rem;
   }
 
-  div.bar {
-    position: sticky;
-    top: 4rem;
-    z-index: 19;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.125rem;
-    box-sizing: border-box;
-    width: min(100%, 1180px);
-    min-height: 2.25rem;
-    max-height: 5rem;
-    overflow-y: auto;
-    padding: 0.1875rem 0.5rem;
-    border: 1px solid #dadce0;
-    border-top: 0;
-    border-radius: 0 0 4px 4px;
-    background: #fff;
-    box-shadow: 0 1px 1px rgb(60 64 67 / 0.12);
-  }
-
   div.r {
     display: grid;
-    grid-template-columns: minmax(0, 760px) minmax(280px, 360px);
-    align-items: start;
-    justify-content: center;
+    flex: 1;
+    grid-template-columns: minmax(0, 1fr) clamp(320px, 32vw, 560px);
     gap: 1.5rem;
     box-sizing: border-box;
     width: 100%;
-    padding: 0 1rem 2rem;
+    max-width: var(--container-width);
+    min-height: 0;
+    margin-inline: auto;
+    padding: var(--gutter);
   }
 
-  .r > * {
-    display: block;
+  .editor {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
   }
 
-  .r > .editor {
-    display: grid;
-    gap: 0.75rem;
-    grid-column: 1;
-    grid-row: 2;
-    justify-self: start;
-    width: min(100%, 760px);
-  }
-
-  .editor > .asset-picker {
-    z-index: 18;
-  }
-
-  .asset-picker {
+  .editor-card,
+  .asset-picker,
+  .l,
+  .editor-card,
+  .asset-picker,
+  .l {
     box-sizing: border-box;
-    width: 100%;
     overflow: hidden;
     border: 1px solid #dadce0;
     border-radius: 4px;
     background: #fff;
-    box-shadow:
-      0 2px 6px 2px rgb(60 64 67 / 0.15),
-      0 1px 2px rgb(60 64 67 / 0.3);
+    box-shadow: 0 1px 2px rgb(60 64 67 / 0.16);
   }
 
-  .r > .bar {
-    grid-column: 1 / -1;
-    justify-self: center;
+  .editor-card {
+    flex: none;
+    transition: box-shadow 0.18s ease;
+  }
+
+  .editor-card:focus-within {
+    box-shadow:
+      0 0 0 1px #1a73e8,
+      0 2px 3px rgb(60 64 67 / 0.3);
+  }
+
+  div.bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.125rem;
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid #e8eaed;
+  }
+
+  .asset-picker {
+    display: flex;
+    flex: 1;
+    min-height: 0;
   }
 
   .side-panel {
-    position: sticky;
-    top: 8rem;
-    grid-column: 2;
-    grid-row: 2;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 1rem;
-    align-self: start;
-    width: 100%;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .l {
-    box-sizing: border-box;
-    width: 100%;
+    flex: none;
     padding: 1rem;
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-    background: #fff;
-    box-shadow: 0 1px 2px rgb(60 64 67 / 0.16);
   }
 
   .l::before {
@@ -1401,44 +1396,20 @@
   }
 
   textarea {
-    width: min(100%, 760px);
-    min-height: 18rem;
-    padding: 4.5rem 4rem;
-    border: none;
-    border-radius: 2px;
-    background: #fff;
-    box-shadow:
-      0 1px 2px rgb(60 64 67 / 0.3),
-      0 1px 3px 1px rgb(60 64 67 / 0.15);
-    color: #202124;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 1rem;
-    line-height: 1.6;
-    overflow: auto;
-    resize: none;
-    transition:
-      box-shadow 0.18s ease,
-      background-color 0.18s ease;
-  }
-
-  .editor > textarea {
     display: block;
     width: 100%;
-  }
-
-  textarea:hover {
-    background-color: #fff;
-    box-shadow:
-      0 2px 3px rgb(60 64 67 / 0.3),
-      0 4px 8px 3px rgb(60 64 67 / 0.15);
-  }
-
-  textarea:focus {
+    height: 7.5rem;
+    min-height: 4rem;
+    padding: 1rem 1.25rem;
+    border: none;
+    border-radius: 0;
     outline: none;
-    box-shadow:
-      0 0 0 1px #1a73e8,
-      0 2px 3px rgb(60 64 67 / 0.3),
-      0 4px 8px 3px rgb(60 64 67 / 0.15);
+    background: #fff;
+    color: #202124;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    resize: vertical;
   }
 
   canvas {
@@ -1471,25 +1442,11 @@
     box-shadow: 0 1px 2px rgb(60 64 67 / 0.3);
   }
 
-  .config-panel {
-    box-sizing: border-box;
-    width: 100%;
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-    background: #fff;
-    box-shadow: 0 1px 2px rgb(60 64 67 / 0.12);
-  }
-
-  .config-panel h2 {
-    margin: 0;
-    padding: 0.85rem 1rem 0.25rem;
-    color: #3c4043;
-    font-size: 0.9rem;
-    font-weight: 600;
-  }
-
   .print-button {
+    flex: none;
     width: 100%;
+    padding-block: 0.75rem;
+    font-size: 1rem;
     border-color: #1a73e8;
     background: #1a73e8;
     color: #fff;
@@ -1503,34 +1460,46 @@
   }
 
   .config {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem 1rem;
-    padding: 0 1rem 1rem;
-    border: none;
-    border-radius: 0;
-    background-color: transparent;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.5rem;
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid #e8eaed;
+    color: #5f6368;
+    font-size: 0.8rem;
   }
 
   .config label {
     display: flex;
-    gap: 0.5rem;
-    justify-content: space-between;
     align-items: center;
+    gap: 0.35rem;
     color: #3c4043;
-    font-size: 0.85rem;
     font-weight: 500;
+  }
+
+  .config .group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
   }
 
   .config input {
     box-sizing: border-box;
-    width: 80px;
-    padding: 0.35rem 0.45rem;
+    width: 2.75rem;
+    appearance: textfield;
+    padding: 0.2rem 0.35rem;
     border: 1px solid #dadce0;
     border-radius: 3px;
     background: #fff;
     color: #202124;
+    font: inherit;
     text-align: center;
+  }
+
+  .config input::-webkit-inner-spin-button {
+    appearance: none;
   }
 
   .config input:focus {
@@ -1540,19 +1509,7 @@
 
   .config input[type="checkbox"] {
     width: auto;
-    margin-right: 0.25rem;
-  }
-
-  .config input[type="range"] {
-    width: calc(100% - 10em);
-  }
-
-  .config label:has(input[type="range"]) {
-    grid-column: 1 / -1;
-  }
-
-  .config label:has(input[type="checkbox"]) {
-    justify-content: flex-start;
+    margin: 0;
   }
 
   .bar button {
@@ -1576,44 +1533,40 @@
   }
 
   @media (max-width: 960px) {
-    div.r {
-      grid-template-columns: minmax(0, 1fr);
+    main {
+      --gutter: 1rem;
+
+      height: auto;
+      min-height: 100vh;
     }
 
+    /* One column: flatten both panels so the preview sits right under the editor. */
+    div.r {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .editor,
     .side-panel {
-      position: static;
-      grid-column: 1;
-      grid-row: auto;
+      display: contents;
     }
 
-    textarea {
-      min-height: 16rem;
-      padding: 2rem 1.5rem;
+    .l {
+      order: 1;
     }
 
-    .config {
-      grid-template-columns: 1fr;
+    .print-button {
+      order: 2;
+    }
+
+    .asset-picker {
+      flex: none;
+      order: 3;
+      height: 24rem;
     }
   }
 
-  @media (max-width: 560px) {
-    h1 {
-      padding-inline: 1rem;
-    }
-
-    div.r {
-      padding-inline: 0.75rem;
-    }
-
-    div.bar {
-      justify-content: flex-start;
-      border-radius: 0 0 4px 4px;
-    }
-
-    textarea {
-      padding: 1.5rem 1rem;
-    }
-  }
   .italic {
     background: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWl0YWxpYy1pY29uIGx1Y2lkZS1pdGFsaWMiPjxsaW5lIHgxPSIxOSIgeDI9IjEwIiB5MT0iNCIgeTI9IjQiLz48bGluZSB4MT0iMTQiIHgyPSI1IiB5MT0iMjAiIHkyPSIyMCIvPjxsaW5lIHgxPSIxNSIgeDI9IjkiIHkxPSI0IiB5Mj0iMjAiLz48L3N2Zz4=")
       no-repeat;
