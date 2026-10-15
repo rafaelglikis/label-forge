@@ -53,7 +53,11 @@
     {:else}
       <svg
         class={icon.glyph.paint}
-        viewBox="0 0 {icon.glyph.viewBoxSize} {icon.glyph.viewBoxSize}"
+        viewBox={[
+          ...(icon.glyph.viewBoxOrigin ?? [0, 0]),
+          icon.glyph.viewBoxSize,
+          icon.glyph.viewBoxSize,
+        ].join(" ")}
         aria-hidden="true"
       >
         {#each icon.glyph.node as [tag, attrs]}

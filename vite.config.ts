@@ -45,6 +45,7 @@ const ionIconModuleId = 'virtual:ionicons'
 const simpleIconModuleId = 'virtual:simple-icons'
 const devIconModuleId = 'virtual:devicons'
 const emojiModuleId = 'virtual:emojis'
+const customIconModuleId = 'virtual:custom-icons'
 
 function parseSvgAttrs(source: string) {
   const attrs: Record<string, string | number | undefined> = {}
@@ -61,6 +62,14 @@ function parseSvgNode(source: string): LucideIconNode {
   return [
     ...source.matchAll(/<(path|circle|ellipse|line|rect|polyline|polygon)\b([^>]*)\/?>(?:<\/\1>)?/g),
   ].map((match) => [match[1], parseSvgAttrs(match[2])])
+}
+
+// Nodes are drawn flat, so SVGs relying on groups, transforms or gradients can't be rendered.
+const unsupportedSvg = /<(?:g|use|defs|style|mask|clipPath|linearGradient|radialGradient)\b|transform=/
+
+// Parse a single-colour SVG, dropping its own fill colours so it paints in the current colour.
+function parseMonochromeSvgNode(source: string): LucideIconNode {
+  return parseSvgNode(source).map(([tag, { fill: _fill, ...attrs }]) => [tag, attrs])
 }
 
 function fontAwesomeIconData(): Plugin {
@@ -640,8 +649,6 @@ function devIconData(): Plugin {
       }[]
       // Only monochrome variants; colored "original" ones would print as solid blobs.
       const styles = ['plain', 'line'] satisfies DevIconStyle[]
-      // Nodes are drawn flat, so skip SVGs relying on groups, transforms or gradients.
-      const unsupported = /<(?:g|use|defs|style|mask|clipPath|linearGradient|radialGradient)\b|transform=/
       const icons = metadata
         .flatMap((icon) =>
           styles
@@ -651,7 +658,7 @@ function devIconData(): Plugin {
                 `${packagePath}/icons/${icon.name}/${icon.name}-${style}.svg`,
                 'utf8',
               )
-              if (unsupported.test(source)) return []
+              if (unsupportedSvg.test(source)) return []
 
               const label = icon.name
                 .split('-')
@@ -662,9 +669,7 @@ function devIconData(): Plugin {
                 name: icon.name,
                 label,
                 style,
-                node: parseSvgNode(source).map(
-                  ([tag, { fill: _fill, ...attrs }]) => [tag, attrs] as LucideIconNode[number],
-                ),
+                node: parseMonochromeSvgNode(source),
                 searchText: [
                   icon.name,
                   label,
@@ -727,6 +732,79 @@ function emojiData(): Plugin {
   }
 }
 
+function customIconData(): Plugin {
+  const iconsPath = fileURLToPath(new URL('./src/icons/custom/', import.meta.url))
+
+  return {
+    name: 'custom-icon-data',
+    // Reload the app when SVGs are added or removed while the dev server runs.
+    configureServer(server) {
+      const reload = (path: string) => {
+        if (!path.startsWith(iconsPath) || !path.endsWith('.svg')) return
+
+        const module = server.moduleGraph.getModuleById(customIconModuleId)
+        if (module) server.moduleGraph.invalidateModule(module)
+        server.ws.send({ type: 'full-reload' })
+      }
+      server.watcher.on('add', reload)
+      server.watcher.on('unlink', reload)
+    },
+    resolveId(id) {
+      if (id === customIconModuleId) return id
+    },
+    load(id) {
+      if (id !== customIconModuleId) return
+
+      const icons = readdirSync(iconsPath)
+        .filter((file) => file.endsWith('.svg'))
+        .map((file) => {
+          const name = file.slice(0, -4)
+          if (!/^[a-z0-9-]+$/.test(name)) {
+            throw new Error(`Custom icon "${file}": use lowercase letters, digits and dashes only`)
+          }
+
+          // Rebuild the module when an existing SVG is edited.
+          this.addWatchFile(`${iconsPath}/${file}`)
+          const source = readFileSync(`${iconsPath}/${file}`, 'utf8')
+          if (unsupportedSvg.test(source)) {
+            throw new Error(
+              `Custom icon "${file}": flatten groups, transforms and gradients into plain paths`,
+            )
+          }
+
+          const viewBox = source
+            .match(/viewBox=["']([^"']+)["']/)?.[1]
+            .split(/[\s,]+/)
+            .map(Number)
+          if (viewBox?.length !== 4 || !viewBox.every(Number.isFinite)) {
+            throw new Error(`Custom icon "${file}": needs a viewBox attribute`)
+          }
+
+          // Fit any viewBox into a square one, centering the shorter side.
+          const [minX, minY, width, height] = viewBox
+          const viewBoxSize = Math.max(width, height)
+
+          const label = name
+            .split('-')
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(' ')
+
+          return {
+            name,
+            label,
+            viewBoxSize,
+            viewBoxOrigin: [minX - (viewBoxSize - width) / 2, minY - (viewBoxSize - height) / 2],
+            node: parseMonochromeSvgNode(source),
+            searchText: `${name} ${label}`.toLowerCase(),
+          }
+        })
+        .sort((a, b) => a.label.localeCompare(b.label))
+
+      return `export default ${JSON.stringify(icons)}`
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
@@ -744,6 +822,7 @@ export default defineConfig({
     simpleIconData(),
     devIconData(),
     emojiData(),
+    customIconData(),
     svelte(),
   ],
 })

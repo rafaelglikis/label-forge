@@ -12,6 +12,7 @@
   import { phosphorIconMap } from "./lib/phosphor-icons";
   import { remixIconMap } from "./lib/remix-icons";
   import { simpleIconMap, type SimpleIcon } from "./lib/simple-icons";
+  import { customIconMap, type CustomIcon } from "./lib/custom-icons";
   import { tablerIconMap, type TablerIcon } from "./lib/tabler-icons";
 
   const fontAwesomeSolidFontUrl = new URL(
@@ -153,7 +154,7 @@
     size: number,
     render_fn: (
       str: string,
-      vectorIcon?: LucideIcon | TablerIcon | HeroIcon | IonIcon | SimpleIcon | DevIcon,
+      vectorIcon?: LucideIcon | TablerIcon | HeroIcon | IonIcon | SimpleIcon | DevIcon | CustomIcon,
       size?: number,
     ) => void,
   ) {
@@ -179,6 +180,7 @@
     const match_phosphor_icons = /\{ph:(?:(?:thin|light|regular|bold|fill|duotone):)?[a-z0-9-]+\}/g;
     const match_ion_icons = /\{io:[a-z0-9-]+\}/g;
     const match_simple_icons = /\{si:[a-z0-9]+\}/g;
+    const match_custom_icons = /\{cu:[a-z0-9-]+\}/g;
     const match_dev_icons = /\{dv:(?:(?:plain|line):)?[a-z0-9-]+\}/g;
     const match_big = /\^\^.*?\^\^/g;
     const match_small = /__.*?__/g;
@@ -354,6 +356,20 @@
       parsed.push({
         pos: start,
         type: "simple icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+    for (const m of clean_line.matchAll(match_custom_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "custom icon",
         end,
         icon: m[0].slice(4, -1),
       });
@@ -586,6 +602,17 @@
           pos = tag.end ?? tag.pos;
           break;
         }
+        case "custom icon": {
+          const icon = tag.icon ? customIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            render_fn("", icon, current_font.size);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
         case "dev icon": {
           const icon = tag.icon ? devIconMap.get(tag.icon) : undefined;
           if (icon) {
@@ -648,7 +675,7 @@
 
   function drawVectorIcon(
     ctx: CanvasContext,
-    icon: LucideIcon | TablerIcon | HeroIcon | IonIcon | SimpleIcon | DevIcon,
+    icon: LucideIcon | TablerIcon | HeroIcon | IonIcon | SimpleIcon | DevIcon | CustomIcon,
     x: number,
     baseline: number,
     size: number,
@@ -669,6 +696,7 @@
     ctx.translate(x, baseline - size);
     const viewBoxSize = "viewBoxSize" in icon ? icon.viewBoxSize : 24;
     ctx.scale(size / viewBoxSize, size / viewBoxSize);
+    if ("viewBoxOrigin" in icon) ctx.translate(-icon.viewBoxOrigin[0], -icon.viewBoxOrigin[1]);
     const filled =
       "style" in icon &&
       ["filled", "solid", "plain", "line"].includes(icon.style);

@@ -1,6 +1,7 @@
 import emojiData from "virtual:emojis";
 import { bootstrapIcons } from "./bootstrap-icons";
 import { boxIcons } from "./boxicons";
+import { customIcons } from "./custom-icons";
 import { devIcons } from "./devicons";
 import { fontAwesomeIcons } from "./font-awesome-icons";
 import { heroIcons } from "./heroicons";
@@ -28,6 +29,8 @@ export type PickerGlyph =
       kind: "svg";
       node: IconNode;
       viewBoxSize: number;
+      // Top-left corner of the square viewBox; defaults to 0 0.
+      viewBoxOrigin?: [number, number];
       // Picker CSS class describing how the SVG is painted.
       paint: "stroke" | "stroke-thin" | "fill" | "ion";
     };
@@ -98,6 +101,20 @@ const emojiPack: IconPack = {
 
 export const iconPacks: IconPack[] = [
   emojiPack,
+  pack({
+    id: "custom",
+    title: "Custom",
+    prefix: "cu",
+    // The style is always "filled", so leave it out of the tooltip.
+    icons: customIcons.map(({ style: _style, ...icon }) => icon),
+    glyph: (icon) => ({
+      kind: "svg",
+      node: icon.node,
+      viewBoxSize: icon.viewBoxSize,
+      viewBoxOrigin: icon.viewBoxOrigin,
+      paint: "fill",
+    }),
+  }),
   pack({
     id: "font-awesome",
     title: "Font Awesome",

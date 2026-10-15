@@ -151,3 +151,16 @@ declare module "virtual:emojis" {
 
   export default emojis;
 }
+
+declare module "virtual:custom-icons" {
+  const icons: {
+    name: string;
+    label: string;
+    viewBoxSize: number;
+    viewBoxOrigin: [number, number];
+    node: [string, Record<string, string | number | undefined>][];
+    searchText: string;
+  }[];
+
+  export default icons;
+}
