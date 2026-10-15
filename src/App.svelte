@@ -1,25 +1,17 @@
 <script lang="ts">
   import { onMount, settled, tick } from "svelte";
-  import BoxIcons from "./lib/BoxIcons.svelte";
+  import IconPicker from "./lib/IconPicker.svelte";
   import { boxIconMap } from "./lib/boxicons";
-  import BootstrapIcons from "./lib/BootstrapIcons.svelte";
+  import { devIconMap, type DevIcon } from "./lib/devicons";
   import { bootstrapIconMap } from "./lib/bootstrap-icons";
-  import Emoji from "./lib/Emoji.svelte";
-  import FontAwesome from "./lib/FontAwesome.svelte";
   import { fontAwesomeIconMap } from "./lib/font-awesome-icons";
-  import HeroIcons from "./lib/HeroIcons.svelte";
   import { heroIconMap, type HeroIcon } from "./lib/heroicons";
-  import IonIcons from "./lib/IonIcons.svelte";
   import { ionIconMap, type IonIcon } from "./lib/ionicons";
-  import LucideIcons from "./lib/LucideIcons.svelte";
   import { lucideIconMap, type LucideIcon } from "./lib/lucide-icons";
-  import MaterialIcons from "./lib/MaterialIcons.svelte";
   import { materialIconMap } from "./lib/material-icons";
-  import PhosphorIcons from "./lib/PhosphorIcons.svelte";
   import { phosphorIconMap } from "./lib/phosphor-icons";
-  import RemixIcons from "./lib/RemixIcons.svelte";
   import { remixIconMap } from "./lib/remix-icons";
-  import TablerIcons from "./lib/TablerIcons.svelte";
+  import { simpleIconMap, type SimpleIcon } from "./lib/simple-icons";
   import { tablerIconMap, type TablerIcon } from "./lib/tabler-icons";
 
   const fontAwesomeSolidFontUrl = new URL(
@@ -95,33 +87,6 @@
     | CanvasRenderingContext2D
     | OffscreenCanvasRenderingContext2D;
 
-  type AssetTab =
-    | "emoji"
-    | "font-awesome"
-    | "material-icons"
-    | "lucide-icons"
-    | "remix-icons"
-    | "box-icons"
-    | "tabler-icons"
-    | "bootstrap-icons"
-    | "hero-icons"
-    | "phosphor-icons"
-    | "ion-icons";
-
-  const assetTabs: { id: AssetTab; label: string; title: string }[] = [
-    { id: "emoji", label: "Emoji", title: "Emoji" },
-    { id: "font-awesome", label: "Font Awesome", title: "Font Awesome" },
-    { id: "material-icons", label: "Material Icons", title: "Material Icons" },
-    { id: "lucide-icons", label: "Lucide", title: "Lucide Icons" },
-    { id: "remix-icons", label: "Remix", title: "Remix Icon" },
-    { id: "box-icons", label: "Boxicons", title: "Boxicons" },
-    { id: "tabler-icons", label: "Tabler", title: "Tabler Icons" },
-    { id: "bootstrap-icons", label: "Bootstrap", title: "Bootstrap Icons" },
-    { id: "hero-icons", label: "Heroicons", title: "Heroicons" },
-    { id: "phosphor-icons", label: "Phosphor", title: "Phosphor Icons" },
-    { id: "ion-icons", label: "Ionicons", title: "Ionicons" },
-  ];
-
   const PRINTER_SERVICE_UUID = "0000ff00-0000-1000-8000-00805f9b34fb";
   const PRINT_CHARACTERISTIC_UUID = "0000ff02-0000-1000-8000-00805f9b34fb";
 
@@ -145,8 +110,6 @@
   let margin_x = $derived(Math.round(margin_width_mm * 8));
   let margin_y = $derived(Math.round(margin_height_mm * 8));
   let text = $state(sessionStorage.getItem("text") || "");
-  let active_asset_tab = $state<AssetTab>("emoji");
-  let icon_search_query = $state("");
   let textarea: HTMLTextAreaElement | undefined = $state();
   let printer_device: BluetoothDevice | undefined = $state();
 
@@ -185,7 +148,7 @@
     size: number,
     render_fn: (
       str: string,
-      vectorIcon?: LucideIcon | TablerIcon | HeroIcon | IonIcon,
+      vectorIcon?: LucideIcon | TablerIcon | HeroIcon | IonIcon | SimpleIcon | DevIcon,
       size?: number,
     ) => void,
   ) {
@@ -210,6 +173,8 @@
     const match_hero_icons = /\{hi:(?:(?:outline|solid):)?[a-z0-9-]+\}/g;
     const match_phosphor_icons = /\{ph:(?:(?:thin|light|regular|bold|fill|duotone):)?[a-z0-9-]+\}/g;
     const match_ion_icons = /\{io:[a-z0-9-]+\}/g;
+    const match_simple_icons = /\{si:[a-z0-9]+\}/g;
+    const match_dev_icons = /\{dv:(?:(?:plain|line):)?[a-z0-9-]+\}/g;
     const match_big = /\^\^.*?\^\^/g;
     const match_small = /__.*?__/g;
 
@@ -370,6 +335,34 @@
       parsed.push({
         pos: start,
         type: "ion icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+    for (const m of clean_line.matchAll(match_simple_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "simple icon",
+        end,
+        icon: m[0].slice(4, -1),
+      });
+      clean_line =
+        clean_line.substring(0, start) +
+        "\n".repeat(m[0].length) +
+        clean_line.substring(end);
+    }
+    for (const m of clean_line.matchAll(match_dev_icons)) {
+      const start = m.index;
+      const end = start + m[0].length;
+      parsed.push({
+        pos: start,
+        type: "dev icon",
         end,
         icon: m[0].slice(4, -1),
       });
@@ -577,6 +570,28 @@
           pos = tag.end ?? tag.pos;
           break;
         }
+        case "simple icon": {
+          const icon = tag.icon ? simpleIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            render_fn("", icon, current_font.size);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
+        case "dev icon": {
+          const icon = tag.icon ? devIconMap.get(tag.icon) : undefined;
+          if (icon) {
+            render_fn("", icon, current_font.size);
+          } else if (tag.end !== undefined) {
+            ctx.font = make_font(current_font);
+            render_fn(line.substring(tag.pos, tag.end));
+          }
+          pos = tag.end ?? tag.pos;
+          break;
+        }
       }
     }
   }
@@ -628,7 +643,7 @@
 
   function drawVectorIcon(
     ctx: CanvasContext,
-    icon: LucideIcon | TablerIcon | HeroIcon | IonIcon,
+    icon: LucideIcon | TablerIcon | HeroIcon | IonIcon | SimpleIcon | DevIcon,
     x: number,
     baseline: number,
     size: number,
@@ -650,7 +665,8 @@
     const viewBoxSize = "viewBoxSize" in icon ? icon.viewBoxSize : 24;
     ctx.scale(size / viewBoxSize, size / viewBoxSize);
     const filled =
-      "style" in icon && (icon.style === "filled" || icon.style === "solid");
+      "style" in icon &&
+      ["filled", "solid", "plain", "line"].includes(icon.style);
     ctx.fillStyle = filled ? "#000" : "transparent";
     ctx.strokeStyle = "#000";
     ctx.lineWidth = viewBoxSize === 512 ? 32 : 2;
@@ -1136,43 +1152,7 @@
         placeholder="Write text here..."
       ></textarea>
       <section class="asset-picker" aria-label="Emoji and icon picker">
-        <div class="asset-tabs" role="tablist" aria-label="Asset type">
-          {#each assetTabs as tab}
-            <button
-              type="button"
-              class:active={active_asset_tab === tab.id}
-              role="tab"
-              aria-selected={active_asset_tab === tab.id}
-              title={tab.title}
-              onclick={() => (active_asset_tab = tab.id)}
-            >
-              {tab.label}
-            </button>
-          {/each}
-        </div>
-        {#if active_asset_tab === "emoji"}
-          <Emoji onselect={insertText} />
-        {:else if active_asset_tab === "font-awesome"}
-          <FontAwesome bind:query={icon_search_query} onselect={(token: string) => insertText(`{fa:${token}}`)} />
-        {:else if active_asset_tab === "material-icons"}
-          <MaterialIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{mi:${token}}`)} />
-        {:else if active_asset_tab === "lucide-icons"}
-          <LucideIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{lu:${token}}`)} />
-        {:else if active_asset_tab === "remix-icons"}
-          <RemixIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ri:${token}}`)} />
-        {:else if active_asset_tab === "box-icons"}
-          <BoxIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{bx:${token}}`)} />
-        {:else if active_asset_tab === "tabler-icons"}
-          <TablerIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ti:${token}}`)} />
-        {:else if active_asset_tab === "bootstrap-icons"}
-          <BootstrapIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{bi:${token}}`)} />
-        {:else if active_asset_tab === "hero-icons"}
-          <HeroIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{hi:${token}}`)} />
-        {:else if active_asset_tab === "phosphor-icons"}
-          <PhosphorIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{ph:${token}}`)} />
-        {:else if active_asset_tab === "ion-icons"}
-          <IonIcons bind:query={icon_search_query} onselect={(token: string) => insertText(`{io:${token}}`)} />
-        {/if}
+        <IconPicker onselect={insertText} />
       </section>
     </div>
     <aside class="side-panel">
@@ -1365,39 +1345,6 @@
       0 1px 2px rgb(60 64 67 / 0.3);
   }
 
-  .asset-tabs {
-    display: flex;
-    gap: 0.25rem;
-    overflow-x: auto;
-    padding: 0.375rem 0.5rem;
-    border-bottom: 1px solid #e8eaed;
-    background: #fff;
-  }
-
-  .asset-tabs button {
-    width: auto;
-    min-width: 2.125rem;
-    height: 1.75rem;
-    padding: 0 0.55rem;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    background: transparent;
-    color: #3c4043;
-    font-size: 0.72rem;
-    font-weight: 700;
-    white-space: nowrap;
-  }
-
-  .asset-tabs button:hover {
-    background: #f1f3f4;
-    box-shadow: none;
-  }
-
-  .asset-tabs button.active {
-    background: #e8f0fe;
-    color: #174ea6;
-  }
-
   .r > .bar {
     grid-column: 1 / -1;
     justify-self: center;
@@ -1553,143 +1500,6 @@
     border-color: #185abc;
     background: #185abc;
     box-shadow: 0 2px 4px rgb(26 115 232 / 0.35);
-  }
-
-  :global(emoji),
-  :global(font-awesome-picker),
-  :global(material-icons-picker),
-  :global(lucide-icons-picker),
-  :global(remix-icons-picker),
-  :global(box-icons-picker),
-  :global(tabler-icons-picker),
-  :global(bootstrap-icons-picker),
-  :global(hero-icons-picker),
-  :global(phosphor-icons-picker),
-  :global(ion-icons-picker) {
-    box-sizing: border-box;
-    justify-self: start;
-    width: min(100%, 760px) !important;
-    overflow: hidden;
-    border: 1px solid #dadce0 !important;
-    border-radius: 4px !important;
-    background: #fff !important;
-    box-shadow:
-      0 2px 6px 2px rgb(60 64 67 / 0.15),
-      0 1px 2px rgb(60 64 67 / 0.3) !important;
-  }
-
-  .asset-picker :global(emoji),
-  .asset-picker :global(font-awesome-picker),
-  .asset-picker :global(material-icons-picker),
-  .asset-picker :global(lucide-icons-picker),
-  .asset-picker :global(remix-icons-picker),
-  .asset-picker :global(box-icons-picker),
-  .asset-picker :global(tabler-icons-picker),
-  .asset-picker :global(bootstrap-icons-picker),
-  .asset-picker :global(hero-icons-picker),
-  .asset-picker :global(phosphor-icons-picker),
-  .asset-picker :global(ion-icons-picker) {
-    width: 100% !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
-
-  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .header) {
-    gap: 0.5rem !important;
-    padding: 0.75rem !important;
-    border-bottom: 1px solid #e8eaed !important;
-    background: #fff !important;
-  }
-
-  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) h3) {
-    color: #3c4043 !important;
-    font-size: 0.875rem !important;
-    font-weight: 600 !important;
-    line-height: 1.25rem !important;
-  }
-
-  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) input) {
-    height: 2.25rem !important;
-    padding: 0 0.75rem !important;
-    border: 1px solid #dadce0 !important;
-    border-radius: 4px !important;
-    background: #f8fafd !important;
-    color: #202124 !important;
-    font-size: 0.9rem !important;
-  }
-
-  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) input:focus) {
-    outline: none !important;
-    border-color: #1a73e8 !important;
-    background: #fff !important;
-    box-shadow: 0 0 0 2px #d2e3fc !important;
-  }
-
-  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .grid-container) {
-    height: 16rem !important;
-    padding: 0.75rem !important;
-    background: #fff !important;
-  }
-
-  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .section) {
-    margin-bottom: 0.8rem !important;
-  }
-
-  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .section p) {
-    margin-bottom: 0.45rem !important;
-    color: #5f6368 !important;
-    font-size: 0.6875rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.04em !important;
-  }
-
-  :global(:is(emoji, font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .grid) {
-    gap: 0.25rem !important;
-    max-width: none !important;
-  }
-
-  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .icon-btn),
-  :global(emoji .emoji-btn) {
-    display: grid !important;
-    place-items: center !important;
-    width: 2.125rem !important;
-    height: 2.125rem !important;
-    padding: 0 !important;
-    border-radius: 3px !important;
-    color: #202124 !important;
-    font-size: 1rem !important;
-    line-height: 1 !important;
-  }
-
-  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) .icon-btn:hover),
-  :global(emoji .emoji-btn:hover) {
-    background: #f1f3f4 !important;
-    transform: none !important;
-    box-shadow: none !important;
-  }
-
-  :global(:is(font-awesome-picker, material-icons-picker, lucide-icons-picker, remix-icons-picker, box-icons-picker, tabler-icons-picker, bootstrap-icons-picker, hero-icons-picker, phosphor-icons-picker, ion-icons-picker) svg) {
-    width: 1.25rem !important;
-    height: 1.25rem !important;
-  }
-
-  :global(emoji .categories) {
-    gap: 0.25rem !important;
-    padding: 0.375rem 0.5rem !important;
-    border-bottom: 1px solid #e8eaed !important;
-    background: #fff !important;
-  }
-
-  :global(emoji .category-btn) {
-    min-width: 2.125rem !important;
-    height: 2rem !important;
-    border-radius: 3px !important;
-  }
-
-  :global(emoji .category-btn:hover),
-  :global(emoji .category-btn.active) {
-    background: #f1f3f4 !important;
   }
 
   .config {

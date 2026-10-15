@@ -22,6 +22,7 @@ type IconMetadata = {
 type LucideIconNode = [string, Record<string, string | number | undefined>][]
 type TablerIconStyle = 'outline' | 'filled'
 type HeroIconStyle = 'outline' | 'solid'
+type DevIconStyle = 'plain' | 'line'
 type PhosphorIconStyle = 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'
 
 type TablerIconMetadata = {
@@ -41,6 +42,26 @@ const bootstrapIconModuleId = 'virtual:bootstrap-icons'
 const heroIconModuleId = 'virtual:heroicons'
 const phosphorIconModuleId = 'virtual:phosphor-icons'
 const ionIconModuleId = 'virtual:ionicons'
+const simpleIconModuleId = 'virtual:simple-icons'
+const devIconModuleId = 'virtual:devicons'
+const emojiModuleId = 'virtual:emojis'
+
+function parseSvgAttrs(source: string) {
+  const attrs: Record<string, string | number | undefined> = {}
+  for (const match of source.matchAll(/([\w-]+)=['"]([^'"]*)['"]/g)) {
+    const name = match[1].replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)
+    const value = match[2]
+    const numeric = Number(value)
+    attrs[name] = value && Number.isFinite(numeric) ? numeric : value
+  }
+  return attrs
+}
+
+function parseSvgNode(source: string): LucideIconNode {
+  return [
+    ...source.matchAll(/<(path|circle|ellipse|line|rect|polyline|polygon)\b([^>]*)\/?>(?:<\/\1>)?/g),
+  ].map((match) => [match[1], parseSvgAttrs(match[2])])
+}
 
 function fontAwesomeIconData(): Plugin {
   return {
@@ -532,23 +553,9 @@ function ionIconData(): Plugin {
       const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as {
         icons: { name: string; tags?: string[] }[]
       }
-      const attrName = (name: string) => name.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)
-      const parseAttrs = (source: string) => {
-        const attrs: Record<string, string | number | undefined> = {}
-        for (const match of source.matchAll(/([\w-]+)=['"]([^'"]*)['"]/g)) {
-          const name = attrName(match[1])
-          const value = match[2]
-          const numeric = Number(value)
-          attrs[name] = value && Number.isFinite(numeric) ? numeric : value
-        }
-        return attrs
-      }
       const icons = metadata.icons
         .map((icon) => {
-          const source = readFileSync(`${svgPath}/${icon.name}.svg`, 'utf8')
-          const node = [
-            ...source.matchAll(/<(path|circle|ellipse|line|rect|polyline|polygon)\b([^>]*)\/?>(?:<\/\1>)?/g),
-          ].map((match) => [match[1], parseAttrs(match[2])] as LucideIconNode[number])
+          const node = parseSvgNode(readFileSync(`${svgPath}/${icon.name}.svg`, 'utf8'))
           const style = icon.name.endsWith('-outline')
             ? 'outline'
             : icon.name.endsWith('-sharp')
@@ -582,6 +589,144 @@ function ionIconData(): Plugin {
   }
 }
 
+function simpleIconData(): Plugin {
+  return {
+    name: 'simple-icon-data',
+    resolveId(id) {
+      if (id === simpleIconModuleId) return id
+    },
+    load(id) {
+      if (id !== simpleIconModuleId) return
+
+      const packagePath = fileURLToPath(
+        new URL('./node_modules/simple-icons/', import.meta.url),
+      )
+      const metadata = JSON.parse(
+        readFileSync(`${packagePath}/data/simple-icons.json`, 'utf8'),
+      ) as { title: string; slug: string; aliases?: { aka?: string[] } }[]
+      const icons = metadata
+        .map((icon) => ({
+          name: icon.slug,
+          label: icon.title,
+          node: parseSvgNode(readFileSync(`${packagePath}/icons/${icon.slug}.svg`, 'utf8')),
+          searchText: [icon.slug, icon.title, ...(icon.aliases?.aka ?? [])]
+            .join(' ')
+            .toLowerCase(),
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+
+      return `export default ${JSON.stringify(icons)}`
+    },
+  }
+}
+
+function devIconData(): Plugin {
+  return {
+    name: 'dev-icon-data',
+    resolveId(id) {
+      if (id === devIconModuleId) return id
+    },
+    load(id) {
+      if (id !== devIconModuleId) return
+
+      const packagePath = fileURLToPath(
+        new URL('./node_modules/devicon/', import.meta.url),
+      )
+      const metadata = JSON.parse(readFileSync(`${packagePath}/devicon.json`, 'utf8')) as {
+        name: string
+        altnames?: string[]
+        tags?: string[]
+        versions: { svg: string[] }
+      }[]
+      // Only monochrome variants; colored "original" ones would print as solid blobs.
+      const styles = ['plain', 'line'] satisfies DevIconStyle[]
+      // Nodes are drawn flat, so skip SVGs relying on groups, transforms or gradients.
+      const unsupported = /<(?:g|use|defs|style|mask|clipPath|linearGradient|radialGradient)\b|transform=/
+      const icons = metadata
+        .flatMap((icon) =>
+          styles
+            .filter((style) => icon.versions.svg.includes(style))
+            .flatMap((style) => {
+              const source = readFileSync(
+                `${packagePath}/icons/${icon.name}/${icon.name}-${style}.svg`,
+                'utf8',
+              )
+              if (unsupported.test(source)) return []
+
+              const label = icon.name
+                .split('-')
+                .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+                .join(' ')
+
+              return [{
+                name: icon.name,
+                label,
+                style,
+                node: parseSvgNode(source).map(
+                  ([tag, { fill: _fill, ...attrs }]) => [tag, attrs] as LucideIconNode[number],
+                ),
+                searchText: [
+                  icon.name,
+                  label,
+                  style,
+                  ...(icon.altnames ?? []),
+                  ...(icon.tags ?? []),
+                ]
+                  .join(' ')
+                  .toLowerCase(),
+              }]
+            }),
+        )
+        .filter((icon) => icon.node.length > 0)
+        .sort(
+          (a, b) =>
+            a.label.localeCompare(b.label) || a.style.localeCompare(b.style),
+        )
+
+      return `export default ${JSON.stringify(icons)}`
+    },
+  }
+}
+
+function emojiData(): Plugin {
+  return {
+    name: 'emoji-data',
+    resolveId(id) {
+      if (id === emojiModuleId) return id
+    },
+    load(id) {
+      if (id !== emojiModuleId) return
+
+      const packagePath = fileURLToPath(
+        new URL('./node_modules/emojibase-data/', import.meta.url),
+      )
+      const emojis = JSON.parse(readFileSync(`${packagePath}/en/compact.json`, 'utf8')) as {
+        label: string
+        unicode: string
+        group?: number
+        order?: number
+        tags?: string[]
+      }[]
+      const { groups } = JSON.parse(
+        readFileSync(`${packagePath}/meta/groups.json`, 'utf8'),
+      ) as { groups: Record<string, string> }
+      const componentGroup = 2
+      const icons = emojis
+        .filter((emoji) => emoji.group !== undefined && emoji.group !== componentGroup)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .map((emoji) => ({
+          emoji: emoji.unicode,
+          label: emoji.label,
+          searchText: [emoji.label, groups[emoji.group ?? ''], ...(emoji.tags ?? [])]
+            .join(' ')
+            .toLowerCase(),
+        }))
+
+      return `export default ${JSON.stringify(icons)}`
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
@@ -596,6 +741,9 @@ export default defineConfig({
     heroIconData(),
     phosphorIconData(),
     ionIconData(),
+    simpleIconData(),
+    devIconData(),
+    emojiData(),
     svelte(),
   ],
 })

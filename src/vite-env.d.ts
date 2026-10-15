@@ -118,3 +118,36 @@ declare module "virtual:ionicons" {
 
   export default icons;
 }
+
+declare module "virtual:simple-icons" {
+  const icons: {
+    name: string;
+    label: string;
+    node: [string, Record<string, string | number | undefined>][];
+    searchText: string;
+  }[];
+
+  export default icons;
+}
+
+declare module "virtual:devicons" {
+  const icons: {
+    name: string;
+    label: string;
+    style: "plain" | "line";
+    node: [string, Record<string, string | number | undefined>][];
+    searchText: string;
+  }[];
+
+  export default icons;
+}
+
+declare module "virtual:emojis" {
+  const emojis: {
+    emoji: string;
+    label: string;
+    searchText: string;
+  }[];
+
+  export default emojis;
+}
