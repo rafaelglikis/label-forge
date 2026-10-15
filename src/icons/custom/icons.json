@@ -1,0 +1,18 @@
+{
+  "etoro": {
+    "label": "eToro",
+    "keywords": ["broker", "trading", "stocks", "crypto", "invest"]
+  },
+  "google-messages": {
+    "keywords": ["sms", "chat", "android", "rcs", "text"]
+  },
+  "interactive-brokers": {
+    "keywords": ["ibkr", "broker", "trading", "stocks", "invest"]
+  },
+  "revolut": {
+    "keywords": ["bank", "fintech", "card", "money"]
+  },
+  "t3-code": {
+    "keywords": ["t3", "coding", "ai", "agent", "editor"]
+  }
+}

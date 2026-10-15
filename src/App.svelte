@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, settled, tick } from "svelte";
   import IconPicker from "./lib/IconPicker.svelte";
+  import LabelStage from "./lib/LabelStage.svelte";
+  import type { Box, Overlay, Point } from "./lib/label-layout";
   import { boxIconMap } from "./lib/boxicons";
   import { devIconMap, type DevIcon } from "./lib/devicons";
   import { bootstrapIconMap } from "./lib/bootstrap-icons";
@@ -111,6 +113,18 @@
   let margin_x = $derived(Math.round(margin_width_mm * 8));
   let margin_y = $derived(Math.round(margin_height_mm * 8));
   let text = $state(sessionStorage.getItem("text") || "");
+  // Text block offset from the centered position, in label dots.
+  let text_offset = $state<Point>(
+    JSON.parse(sessionStorage.getItem("text_offset") ?? '{"x":0,"y":0}'),
+  );
+  let overlays = $state<Overlay[]>(
+    JSON.parse(sessionStorage.getItem("overlays") ?? "[]"),
+  );
+  // Where the text block and each overlay were drawn, for hit testing in the stage.
+  let layout = $state<{ text: Box | null; overlays: Record<number, Box> }>({
+    text: null,
+    overlays: {},
+  });
   let textarea: HTMLTextAreaElement | undefined = $state();
   let printer_device: BluetoothDevice | undefined = $state();
 
@@ -141,9 +155,11 @@
     localStorage.setItem("reverse_print", reverse_print.toString());
   });
 
-  // Save text to sessionStorage
+  // Save text and layout to sessionStorage
   $effect(() => {
     sessionStorage.setItem("text", text);
+    sessionStorage.setItem("text_offset", JSON.stringify(text_offset));
+    sessionStorage.setItem("overlays", JSON.stringify(overlays));
   });
   let canvas: HTMLCanvasElement | undefined = $state();
   let pixelData = new Uint8Array();
@@ -707,7 +723,8 @@
     ctx.lineJoin = "round";
 
     for (const [tag, attrs] of icon.node) {
-      const fillNone = String(attrs.class ?? "").includes("ionicon-fill-none");
+      const fillNone = attrs.fill === "none"
+        || String(attrs.class ?? "").includes("ionicon-fill-none");
       const shouldFill = filled && !fillNone;
       ctx.lineWidth = n(attrs["stroke-width"], viewBoxSize === 512 ? 32 : 2);
       ctx.beginPath();
@@ -815,40 +832,62 @@
     return min_size;
   }
 
-  function drawText(ctx: CanvasContext, text: string) {
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, label_width, label_height);
+  function drawLine(
+    ctx: CanvasContext,
+    line: string,
+    size: number,
+    x: number,
+    baseline: number,
+  ) {
+    renderLine(ctx, line, size, (str, vectorIcon, iconSize = size) => {
+      if (vectorIcon) {
+        drawVectorIcon(ctx, vectorIcon, x, baseline, iconSize);
+        x += iconSize;
+        return;
+      }
 
-    // Draw text lines:
+      const m = ctx.measureText(str);
+      ctx.fillText(str, x, baseline);
+      x += m.width;
+    });
+  }
+
+  function drawText(ctx: CanvasContext, text: string): Box | null {
+    // Draw text lines, centered on the label and shifted by the dragged offset:
     const lines = text.split("\n");
     const sz = auto_font_size ? bestSize(ctx, lines) : font_size;
     const font_sz = fullSize(ctx, lines, sz);
+    const top = (label_height - font_sz.total_hg) / 2 + text_offset.y;
 
-    ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "#000";
-    var y = (label_height - font_sz.total_hg) / 2;
+    var y = top;
     for (var i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
       // We have to render twice, once to measure, another to draw
-      const m = measureLine(ctx, line, sz);
+      const m = measureLine(ctx, lines[i], sz);
 
       const line_wd = m.right + m.left;
-      var x = (label_width - line_wd) / 2 + m.left;
       y += i ? font_sz.line_hg : m.ascent;
-
-      renderLine(ctx, lines[i], sz, (str, vectorIcon, iconSize = sz) => {
-        if (vectorIcon) {
-          drawVectorIcon(ctx, vectorIcon, x, y, iconSize);
-          x += iconSize;
-          return;
-        }
-
-        const m = ctx.measureText(str);
-        ctx.fillText(str, x, y);
-        x += m.width;
-      });
+      drawLine(ctx, lines[i], sz, (label_width - line_wd) / 2 + m.left + text_offset.x, y);
     }
+
+    return font_sz.wd > 0
+      ? {
+          x: (label_width - font_sz.wd) / 2 + text_offset.x,
+          y: top,
+          width: font_sz.wd,
+          height: font_sz.total_hg,
+        }
+      : null;
+  }
+
+  function drawOverlay(ctx: CanvasContext, overlay: Overlay): Box {
+    const m = measureLine(ctx, overlay.content, overlay.size);
+    drawLine(ctx, overlay.content, overlay.size, overlay.x + m.left, overlay.y + m.ascent);
+    return {
+      x: overlay.x,
+      y: overlay.y,
+      width: m.right + m.left,
+      height: m.ascent + m.descent,
+    };
   }
 
   function convertToData(ctx: CanvasContext) {
@@ -944,7 +983,16 @@
     const off_ctx = offscreenCanvas.getContext("2d");
     if (!off_ctx) return;
 
-    drawText(off_ctx, text);
+    off_ctx.fillStyle = "#fff";
+    off_ctx.fillRect(0, 0, label_width, label_height);
+    off_ctx.textBaseline = "alphabetic";
+    off_ctx.fillStyle = "#000";
+    layout = {
+      text: drawText(off_ctx, text),
+      overlays: Object.fromEntries(
+        overlays.map((overlay) => [overlay.id, drawOverlay(off_ctx, overlay)]),
+      ),
+    };
     pixelData = convertToData(off_ctx);
 
     // Convert back to image data for preview
@@ -1265,8 +1313,21 @@
     </div>
     <aside class="side-panel">
       <div class="l">
-        <canvas bind:this={canvas} width={label_width} height={label_height}>
-        </canvas>
+        <LabelStage
+          width={label_width}
+          height={label_height}
+          margin={{
+            x: margin_x,
+            y: margin_y,
+          }}
+          textBox={layout.text}
+          overlayBoxes={layout.overlays}
+          bind:overlays
+          bind:textOffset={text_offset}
+        >
+          <canvas bind:this={canvas} width={label_width} height={label_height}>
+          </canvas>
+        </LabelStage>
         <span>
           Label size:
           {(label_width * 0.125).toFixed(1)}
@@ -1416,8 +1477,7 @@
   }
 
   textarea,
-  button,
-  canvas {
+  button {
     box-sizing: border-box;
     border: 1px solid #dadce0;
     border-radius: 4px;
@@ -1441,7 +1501,8 @@
   }
 
   canvas {
-    border: 1px solid #dadce0;
+    display: block;
+    width: 100%;
     border-radius: 4px;
     background: #fff;
     image-rendering: pixelated;

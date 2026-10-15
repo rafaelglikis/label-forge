@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
@@ -24,6 +24,11 @@ type TablerIconStyle = 'outline' | 'filled'
 type HeroIconStyle = 'outline' | 'solid'
 type DevIconStyle = 'plain' | 'line'
 type PhosphorIconStyle = 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'
+
+type CustomIconMetadata = {
+  label?: string
+  keywords?: string[]
+}
 
 type TablerIconMetadata = {
   name: string
@@ -68,8 +73,17 @@ function parseSvgNode(source: string): LucideIconNode {
 const unsupportedSvg = /<(?:g|use|defs|style|mask|clipPath|linearGradient|radialGradient)\b|transform=/
 
 // Parse a single-colour SVG, dropping its own fill colours so it paints in the current colour.
+// fill="none" is kept: those shapes are outlines and get stroked instead.
 function parseMonochromeSvgNode(source: string): LucideIconNode {
-  return parseSvgNode(source).map(([tag, { fill: _fill, ...attrs }]) => [tag, attrs])
+  return parseSvgNode(source).map(([tag, { fill, ...attrs }]) => [
+    tag,
+    fill === 'none'
+      ? {
+          ...attrs,
+          fill,
+        }
+      : attrs,
+  ])
 }
 
 function fontAwesomeIconData(): Plugin {
@@ -755,8 +769,19 @@ function customIconData(): Plugin {
     load(id) {
       if (id !== customIconModuleId) return
 
-      const icons = readdirSync(iconsPath)
-        .filter((file) => file.endsWith('.svg'))
+      // Optional display names and search keywords, keyed by icon file name.
+      const metadataPath = `${iconsPath}/icons.json`
+      this.addWatchFile(metadataPath)
+      const metadata = existsSync(metadataPath)
+        ? (JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, CustomIconMetadata>)
+        : {}
+      const files = readdirSync(iconsPath).filter((file) => file.endsWith('.svg'))
+      const unknown = Object.keys(metadata).filter((name) => !files.includes(`${name}.svg`))
+      if (unknown.length > 0) {
+        throw new Error(`icons.json lists icons without an SVG: ${unknown.join(', ')}`)
+      }
+
+      const icons = files
         .map((file) => {
           const name = file.slice(0, -4)
           if (!/^[a-z0-9-]+$/.test(name)) {
@@ -784,7 +809,7 @@ function customIconData(): Plugin {
           const [minX, minY, width, height] = viewBox
           const viewBoxSize = Math.max(width, height)
 
-          const label = name
+          const label = metadata[name]?.label ?? name
             .split('-')
             .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
             .join(' ')
@@ -795,7 +820,9 @@ function customIconData(): Plugin {
             viewBoxSize,
             viewBoxOrigin: [minX - (viewBoxSize - width) / 2, minY - (viewBoxSize - height) / 2],
             node: parseMonochromeSvgNode(source),
-            searchText: `${name} ${label}`.toLowerCase(),
+            searchText: [name, label, ...(metadata[name]?.keywords ?? [])]
+              .join(' ')
+              .toLowerCase(),
           }
         })
         .sort((a, b) => a.label.localeCompare(b.label))

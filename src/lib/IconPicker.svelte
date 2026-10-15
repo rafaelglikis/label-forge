@@ -1,5 +1,6 @@
 <script lang="ts">
   import { emojiByText, iconPacks, type PickerIcon } from "./icon-packs";
+  import { OVERLAY_MIME } from "./label-layout";
 
   const PAGE_SIZE = 60;
 
@@ -33,6 +34,12 @@
       .filter((pack) => pack.icons.length > 0);
   });
 
+  // Dropping on the label places the icon freely; dropping in the text box inserts its code.
+  function dragIcon(event: DragEvent, icon: PickerIcon) {
+    event.dataTransfer?.setData(OVERLAY_MIME, icon.insert);
+    event.dataTransfer?.setData("text/plain", icon.insert);
+  }
+
   function selectIcon(icon: PickerIcon) {
     recentIcons = [icon, ...recentIcons.filter((recent) => recent !== icon)].slice(
       0,
@@ -43,7 +50,13 @@
 </script>
 
 {#snippet iconButton(icon: PickerIcon)}
-  <button onclick={() => selectIcon(icon)} class="icon-btn" title={icon.title}>
+  <button
+    onclick={() => selectIcon(icon)}
+    ondragstart={(event) => dragIcon(event, icon)}
+    draggable="true"
+    class="icon-btn"
+    title={icon.title}
+  >
     {#if icon.glyph.kind === "text"}
       <span
         class="glyph"
@@ -256,6 +269,10 @@
   .fill {
     fill: currentColor;
     stroke: none;
+    /* Matches the label renderer for outlined (fill="none") shapes. */
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .ion {

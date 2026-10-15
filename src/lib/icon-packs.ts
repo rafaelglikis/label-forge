@@ -99,8 +99,8 @@ const emojiPack: IconPack = {
   })),
 };
 
+// Custom icons come first: they're the user's own picks.
 export const iconPacks: IconPack[] = [
-  emojiPack,
   pack({
     id: "custom",
     title: "Custom",
@@ -115,6 +115,7 @@ export const iconPacks: IconPack[] = [
       paint: "fill",
     }),
   }),
+  emojiPack,
   pack({
     id: "font-awesome",
     title: "Font Awesome",
